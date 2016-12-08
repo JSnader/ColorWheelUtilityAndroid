@@ -62,6 +62,7 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
@@ -90,7 +91,7 @@ public class RawRgbCapture extends AppCompatActivity implements View.OnClickList
     private SeekBar exposureBar, isoBar;
     private TextView exposureTextView, isoTextView;
     private Switch focusLockSwitch, exposureLockSwitch;
-    private static boolean isCheckingPosition = true;
+    private static boolean isCheckingPosition = false;
 
     /**
      * Conversion from screen rotation to JPEG orientation.
@@ -249,7 +250,7 @@ public class RawRgbCapture extends AppCompatActivity implements View.OnClickList
             @Override
             public void onOrientationChanged(int orientation) {
                 if (mTextureView != null && mTextureView.isAvailable()) {
-                    configureTransform(mTextureView.getWidth(), mTextureView.getHeight());
+//                    configureTransform(mTextureView.getWidth(), mTextureView.getHeight());
                 }
             }
         };
@@ -539,17 +540,17 @@ public class RawRgbCapture extends AppCompatActivity implements View.OnClickList
                             int afState = result.get(CaptureResult.CONTROL_AF_STATE);
 
                             // If auto-focus has reached locked state, we are ready to capture
-                            readyToCapture =
-                                    (afState == CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED ||
-                                            afState == CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED);
+                            readyToCapture = true;
+//                                    (afState == CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED ||
+//                                            afState == CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED);
                         }
 
                         // If we are running on an non-legacy device, we should also wait until
                         // auto-exposure and auto-white-balance have converged as well before
                         // taking a picture.
                         if (!isLegacyLocked()) {
-                            int aeState = result.get(CaptureResult.CONTROL_AE_STATE);
-                            int awbState = result.get(CaptureResult.CONTROL_AWB_STATE);
+                            int aeState = CaptureResult.CONTROL_AE_STATE_CONVERGED;//result.get(CaptureResult.CONTROL_AE_STATE);
+                            int awbState = CaptureResult.CONTROL_AWB_STATE_CONVERGED;//result.get(CaptureResult.CONTROL_AWB_STATE);
 
                             readyToCapture = readyToCapture &&
                                     aeState == CaptureResult.CONTROL_AE_STATE_CONVERGED &&
@@ -558,10 +559,10 @@ public class RawRgbCapture extends AppCompatActivity implements View.OnClickList
 
                         // If we haven't finished the pre-capture sequence but have hit our maximum
                         // wait timeout, too bad! Begin capture anyway.
-                        if (!readyToCapture && hitTimeoutLocked()) {
+//                        if (!readyToCapture && hitTimeoutLocked()) {
                             Log.w(TAG, "Timed out waiting for pre-capture sequence to complete.");
                             readyToCapture = true;
-                        }
+//                        }
 
                         if (readyToCapture && mPendingUserCaptures > 0) {
                             // Capture once for each user tap of the "Picture" button.
@@ -990,11 +991,11 @@ public class RawRgbCapture extends AppCompatActivity implements View.OnClickList
         if (contains(mCharacteristics.get(
                 CameraCharacteristics.CONTROL_AE_AVAILABLE_MODES),
                 CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH)) {
-            builder.set(CaptureRequest.CONTROL_AE_MODE,
-                    CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
+//            builder.set(CaptureRequest.CONTROL_AE_MODE,
+//                    CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
         } else {
-            builder.set(CaptureRequest.CONTROL_AE_MODE,
-                    CaptureRequest.CONTROL_AE_MODE_ON);
+//            builder.set(CaptureRequest.CONTROL_AE_MODE,
+//                    CaptureRequest.CONTROL_AE_MODE_ON);
         }
 
         // If there is an auto-magical white balance control mode available, use it.
@@ -1145,8 +1146,8 @@ public class RawRgbCapture extends AppCompatActivity implements View.OnClickList
                 // run.
                 if (!isLegacyLocked()) {
                     // Tell the camera to lock focus.
-                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
-                            CameraMetadata.CONTROL_AE_PRECAPTURE_TRIGGER_START);
+//                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
+//                            CameraMetadata.CONTROL_AE_PRECAPTURE_TRIGGER_START);
                 }
 
                 // Update state machine to wait for auto-focus, auto-exposure, and
@@ -1181,8 +1182,8 @@ public class RawRgbCapture extends AppCompatActivity implements View.OnClickList
             final CaptureRequest.Builder captureBuilder =
                     mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
 
-            captureBuilder.addTarget(mJpegImageReader.get().getSurface());
-            captureBuilder.addTarget(mRawImageReader.get().getSurface());
+          //  captureBuilder.addTarget(mJpegImageReader.get().getSurface());
+           // captureBuilder.addTarget(mRawImageReader.get().getSurface());
 
             // Use the same AE and AF modes as the preview.
             setup3AControlsLocked(captureBuilder);
@@ -1425,7 +1426,7 @@ public class RawRgbCapture extends AppCompatActivity implements View.OnClickList
 
 
             PrintWriter writer = null;
-            FileWriter writerCombined = null;
+            BufferedWriter writerCombined = null;
             File rgbRawFile = null, combinedRgbRawFile = null;
             OutputStream outputStream = null;
             WritableByteChannel fileChannel;
@@ -1438,7 +1439,7 @@ public class RawRgbCapture extends AppCompatActivity implements View.OnClickList
                                         "RAW_combinedRGBs.txt");
 
                 writer = new PrintWriter(rgbRawFile, "UTF-8");
-                writerCombined = new FileWriter(combinedRgbRawFile, true);
+                writerCombined = new BufferedWriter(new FileWriter(combinedRgbRawFile, true));
                 double rawPixel[];
                 for(int rowIndex = startRow; rowIndex < endRow; rowIndex++) {
                     for(int colIndex = startCol; colIndex < endCol; colIndex++) {
@@ -1450,7 +1451,7 @@ public class RawRgbCapture extends AppCompatActivity implements View.OnClickList
                     }
                 }
                 int numberOfPixels = (endRow - startRow) * (endRow - startRow);
-                writerCombined.write("" + (averageR / numberOfPixels) + ", " +
+                writerCombined.append("" + (averageR / numberOfPixels) + ", " +
                                             (averageG  / numberOfPixels) + ", " +
                                             (averageB  / numberOfPixels) + "\n");
                 showToast("Raw picture info saved out.");
