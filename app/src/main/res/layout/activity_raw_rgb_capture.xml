@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    android:id="@+id/coordinatorLayout"
+    tools:context="rawrgbcamera.xrite.com.rawrgbcameracapture.RawRgbCapture">
+
+    <android.support.design.widget.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:theme="@style/AppTheme.AppBarOverlay">
+
+        <android.support.v7.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="?attr/colorPrimary"
+            app:popupTheme="@style/AppTheme.PopupOverlay" />
+
+    </android.support.design.widget.AppBarLayout>
+
+    <rawrgbcamera.xrite.com.rawrgbcameracapture.AutoFitTextureView
+        android:id="@+id/texture"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:layout_gravity="center"/>
+
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/fab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="@dimen/fab_margin"
+        app:srcCompat="@android:drawable/ic_menu_camera" />
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:srcCompat="@drawable/alignment_circle"
+        android:id="@+id/imageView"
+        android:layout_gravity="center"
+        android:visibility="invisible"/>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <SeekBar
+            style="@style/Widget.AppCompat.SeekBar.Discrete"
+            android:layout_width="200dp"
+            android:layout_height="wrap_content"
+            android:max="10"
+            android:progress="3"
+            android:id="@+id/seekBarISO"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true"
+            android:paddingBottom="15dp"
+            android:paddingLeft="10dp"/>
+        <TextView
+            android:id="@+id/textViewISO"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_above="@+id/seekBarISO"
+            android:text="ISO: "
+            android:textColor="@color/colorAccent"
+            android:paddingLeft="10dp"/>
+        <SeekBar
+            style="@style/Widget.AppCompat.SeekBar.Discrete"
+            android:layout_width="200dp"
+            android:layout_height="wrap_content"
+            android:max="10"
+            android:progress="3"
+            android:id="@+id/seekBarExposure"
+            android:layout_above="@id/textViewISO"
+            android:paddingBottom="15dp"
+            android:paddingLeft="10dp"/>
+        <TextView
+            android:id="@+id/textViewExposure"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_above="@+id/seekBarExposure"
+            android:text="Exposure: "
+            android:textColor="@color/colorAccent"
+            android:paddingLeft="10dp"/>
+
+        <Switch
+            android:text="Focus Lock      "
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_above="@+id/textViewExposure"
+            android:layout_alignLeft="@id/textViewExposure"
+            android:textColor="@color/colorAccent"
+            android:layout_marginStart="11dp"
+            android:paddingBottom="15dp"
+            android:id="@+id/switchFocusLock" />
+        <Switch
+            android:text="Exposure Lock"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_above="@+id/switchFocusLock"
+            android:layout_alignLeft="@id/textViewExposure"
+            android:textColor="@color/colorAccent"
+            android:layout_marginStart="11dp"
+            android:paddingBottom="15dp"
+            android:id="@+id/switchExposureLock" />
+    </RelativeLayout>
+</android.support.design.widget.CoordinatorLayout>
