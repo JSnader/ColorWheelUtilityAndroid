@@ -25,8 +25,10 @@ import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.DngCreator;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.media.AudioManager;
 import android.media.Image;
 import android.media.ImageReader;
+import android.media.MediaActionSound;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -49,6 +51,7 @@ import android.util.Log;
 import android.util.Range;
 import android.util.Size;
 import android.util.SparseIntArray;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.OrientationEventListener;
@@ -91,6 +94,7 @@ public class RawRgbCapture extends AppCompatActivity implements View.OnClickList
     private SeekBar exposureBar, isoBar;
     private TextView exposureTextView, isoTextView;
     private Switch focusLockSwitch, exposureLockSwitch;
+//    private static boolean isPhotoInProgress = false;
     private static boolean isCheckingPosition = false;
 
     /**
@@ -133,6 +137,11 @@ public class RawRgbCapture extends AppCompatActivity implements View.OnClickList
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        //Set maximum volume for device so that we can here the shutter sound.
+        AudioManager mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        int origionalVolume = mAudioManager.getStreamVolume(AudioManager.STREAM_RING);
+        mAudioManager.setStreamVolume(AudioManager.STREAM_RING, mAudioManager.getStreamMaxVolume(AudioManager.STREAM_RING), 0);
+
         coordinatorLayout = (CoordinatorLayout)findViewById(R.id.coordinatorLayout);
         exposureTextView = (TextView)findViewById(R.id.textViewExposure);
         isoTextView = (TextView)findViewById(R.id.textViewISO);
@@ -145,14 +154,16 @@ public class RawRgbCapture extends AppCompatActivity implements View.OnClickList
                 int exposureLevel = progress - (int)Math.ceil((double)exposureBar.getMax() / (double)2.0f);
                 exposureTextView.setText("Exposure: " + exposureLevel);
                 if(mPreviewRequestBuilder != null) {
-                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, exposureLevel);
-                    try {
-                        mCaptureSession.setRepeatingRequest(
-                                mPreviewRequestBuilder.build(),
-                                mPreCaptureCallback, mBackgroundHandler);
-                        mState = STATE_PREVIEW;
-                    } catch (CameraAccessException e) {
-                        e.printStackTrace();
+                    synchronized (mCameraStateLock) {
+                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, exposureLevel);
+                        try {
+                            mCaptureSession.setRepeatingRequest(
+                                    mPreviewRequestBuilder.build(),
+                                    mPreCaptureCallback, mBackgroundHandler);
+                            //                        mState = STATE_PREVIEW;
+                        } catch (CameraAccessException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             }
@@ -177,14 +188,16 @@ public class RawRgbCapture extends AppCompatActivity implements View.OnClickList
                 int iso = progress + min;
                 isoTextView.setText("ISO: " + iso);
                 if(mPreviewRequestBuilder != null) {
-                    mPreviewRequestBuilder.set(CaptureRequest.SENSOR_SENSITIVITY, iso);
-                    try {
-                        mCaptureSession.setRepeatingRequest(
-                                mPreviewRequestBuilder.build(),
-                                mPreCaptureCallback, mBackgroundHandler);
-                        mState = STATE_PREVIEW;
-                    } catch (CameraAccessException e) {
-                        e.printStackTrace();
+                    synchronized (mCameraStateLock) {
+                        mPreviewRequestBuilder.set(CaptureRequest.SENSOR_SENSITIVITY, iso);
+                        try {
+                            mCaptureSession.setRepeatingRequest(
+                                    mPreviewRequestBuilder.build(),
+                                    mPreCaptureCallback, mBackgroundHandler);
+//                        mState = STATE_PREVIEW;
+                        } catch (CameraAccessException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             }
@@ -202,32 +215,36 @@ public class RawRgbCapture extends AppCompatActivity implements View.OnClickList
         focusLockSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
-                } else {
-                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO);
-                }
-                try {
-                    mCaptureSession.setRepeatingRequest(
-                            mPreviewRequestBuilder.build(),
-                            mPreCaptureCallback, mBackgroundHandler);
-                    mState = STATE_PREVIEW;
-                } catch (CameraAccessException e) {
-                    e.printStackTrace();
+                synchronized (mCameraStateLock) {
+                    if (isChecked) {
+                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
+                    } else {
+                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO);
+                    }
+                    try {
+                        mCaptureSession.setRepeatingRequest(
+                                mPreviewRequestBuilder.build(),
+                                mPreCaptureCallback, mBackgroundHandler);
+                        //                    mState = STATE_PREVIEW;
+                    } catch (CameraAccessException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         });
         exposureLockSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_LOCK, isChecked);
-                try {
-                    mCaptureSession.setRepeatingRequest(
-                            mPreviewRequestBuilder.build(),
-                            mPreCaptureCallback, mBackgroundHandler);
-                    mState = STATE_PREVIEW;
-                } catch (CameraAccessException e) {
-                    e.printStackTrace();
+                synchronized (mCameraStateLock) {
+                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_LOCK, isChecked);
+                    try {
+                        mCaptureSession.setRepeatingRequest(
+                                mPreviewRequestBuilder.build(),
+                                mPreCaptureCallback, mBackgroundHandler);
+//                    mState = STATE_PREVIEW;
+                    } catch (CameraAccessException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         });
@@ -235,7 +252,8 @@ public class RawRgbCapture extends AppCompatActivity implements View.OnClickList
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                takePicture();
+                captureStillPictureLocked();
+               // takePicture();
                 Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
                 v.vibrate(10);
             }
@@ -1008,6 +1026,14 @@ public class RawRgbCapture extends AppCompatActivity implements View.OnClickList
         }
     }
 
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if ((keyCode == KeyEvent.KEYCODE_HEADSETHOOK)){
+            captureStillPictureLocked();//takePicture();
+        }
+        return true;
+    }
+
     /**
      * Configure the necessary {@link Matrix} transformation to `mTextureView`,
      * and start/restart the preview capture session if necessary.
@@ -1125,6 +1151,12 @@ public class RawRgbCapture extends AppCompatActivity implements View.OnClickList
      * auto-white-balance to converge.
      */
     private void takePicture() {
+//        if(isPhotoInProgress) {
+//            return;
+//        }
+//        isPhotoInProgress = true;
+        MediaActionSound sound = new MediaActionSound();
+        sound.play(MediaActionSound.SHUTTER_CLICK);
         synchronized(mCameraStateLock) {
             mPendingUserCaptures++;
 
@@ -1174,29 +1206,37 @@ public class RawRgbCapture extends AppCompatActivity implements View.OnClickList
      */
     private void captureStillPictureLocked() {
         try {
+//            if(isPhotoInProgress) {
+//                return;
+//            }
+//            isPhotoInProgress = true;
+            MediaActionSound sound = new MediaActionSound();
+            sound.play(MediaActionSound.SHUTTER_CLICK);
+
             final Activity activity = RawRgbCapture.this;
             if (null == activity || null == mCameraDevice) {
                 return;
             }
             // This is the CaptureRequest.Builder that we use to take a picture.
-            final CaptureRequest.Builder captureBuilder =
-                    mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+            if(mPreviewRequestBuilder == null) {
+                mPreviewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+            }
 
-          //  captureBuilder.addTarget(mJpegImageReader.get().getSurface());
-           // captureBuilder.addTarget(mRawImageReader.get().getSurface());
+            mPreviewRequestBuilder.addTarget(mJpegImageReader.get().getSurface());
+            mPreviewRequestBuilder.addTarget(mRawImageReader.get().getSurface());
 
             // Use the same AE and AF modes as the preview.
-            setup3AControlsLocked(captureBuilder);
+            setup3AControlsLocked(mPreviewRequestBuilder);
 
             // Set orientation.
             int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
-            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION,
+            mPreviewRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION,
                     sensorToDeviceRotation(mCharacteristics, rotation));
 
             // Set request tag to easily track results in callbacks.
-            captureBuilder.setTag(mRequestCounter.getAndIncrement());
+            mPreviewRequestBuilder.setTag(mRequestCounter.getAndIncrement());
 
-            CaptureRequest request = captureBuilder.build();
+            CaptureRequest request = mPreviewRequestBuilder.build();
 
             // Create an ImageSaverBuilder in which to collect results, and add it to the queue
             // of active requests.
@@ -1222,21 +1262,21 @@ public class RawRgbCapture extends AppCompatActivity implements View.OnClickList
      * Call this only with {@link #mCameraStateLock} held.
      */
     private void finishedCaptureLocked() {
-        try {
-            // Reset the auto-focus trigger in case AF didn't run quickly enough.
-            if (!mNoAFRun) {
-                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
-                        CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
-
-                mCaptureSession.capture(mPreviewRequestBuilder.build(), mPreCaptureCallback,
-                        mBackgroundHandler);
-
-                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
-                        CameraMetadata.CONTROL_AF_TRIGGER_IDLE);
-            }
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
+//        try {
+//            // Reset the auto-focus trigger in case AF didn't run quickly enough.
+//            if (!mNoAFRun) {
+//                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
+//                        CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
+//
+//                mCaptureSession.capture(mPreviewRequestBuilder.build(), mPreCaptureCallback,
+//                        mBackgroundHandler);
+//
+//                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
+//                        CameraMetadata.CONTROL_AF_TRIGGER_IDLE);
+//            }
+//        } catch (CameraAccessException e) {
+//            e.printStackTrace();
+//        }
     }
 
     /**
@@ -1479,6 +1519,7 @@ public class RawRgbCapture extends AppCompatActivity implements View.OnClickList
          * @param text The message to show.
          */
         private void showToast(String text) {
+//            isPhotoInProgress = false;
             Snackbar.make(coordinatorLayout, text, Snackbar.LENGTH_LONG)
                     .setAction("Action", null).show();
         }
