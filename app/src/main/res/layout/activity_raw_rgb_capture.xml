@@ -107,5 +107,27 @@
             android:layout_marginStart="11dp"
             android:paddingBottom="15dp"
             android:id="@+id/switchExposureLock" />
+        <SeekBar
+            style="@style/Widget.AppCompat.SeekBar.Discrete"
+            android:text="Target Size"
+            android:layout_width="200dp"
+            android:layout_height="wrap_content"
+            android:max="20"
+            android:progress="5"
+            android:textColor="@color/colorAccent"
+            android:id="@+id/seekBarSize"
+            android:layout_above="@id/switchExposureLock"
+            android:paddingBottom="15dp"
+            android:paddingLeft="10dp"/>
+
+        <TextView
+            android:id="@+id/textViewRgbs"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/colorAccent"
+            android:paddingLeft="10dp"
+            android:text="R:\nG:\nB:\n"
+            android:layout_alignParentStart="true"
+            android:layout_marginTop="80dp"/>
     </RelativeLayout>
 </android.support.design.widget.CoordinatorLayout>
