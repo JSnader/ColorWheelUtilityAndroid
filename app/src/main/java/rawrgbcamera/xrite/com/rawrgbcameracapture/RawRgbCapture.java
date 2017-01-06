@@ -11,6 +11,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
 import android.graphics.Matrix;
+import android.graphics.Point;
 import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.hardware.SensorManager;
@@ -53,9 +54,11 @@ import android.util.Log;
 import android.util.Range;
 import android.util.Size;
 import android.util.SparseIntArray;
+import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.OrientationEventListener;
 import android.view.Surface;
 import android.view.TextureView;
@@ -98,6 +101,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class RawRgbCapture extends AppCompatActivity {
+    private static AudioManager         mAudioManager;
     private static CoordinatorLayout    mCoordinatorLayout;
     private SeekBar                     mExposureBar, mIsoBar, mOverlaySizeBar;
     private TextView                    mExposureTextView, mIsoTextView;
@@ -109,6 +113,18 @@ public class RawRgbCapture extends AppCompatActivity {
     private SharedPreferences           mSharedPreferences;
 
     private static int                  mSharedPrefSession;
+    final GestureDetector               mClickDetector = new GestureDetector(RawRgbCapture.this, new GestureDetector.SimpleOnGestureListener(){
+                                                        @Override
+                                                        public boolean onSingleTapUp(MotionEvent pEvent) {
+                                                            boolean visible = (mCoordinatorLayout.getSystemUiVisibility() & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0;
+                                                            if(visible) {
+                                                                hideSystemUI();
+                                                            }else {
+                                                                showSystemUI();
+                                                            }
+                                                            return true;
+                                                        }
+                                                    });
 
     /**
      * Conversion from screen rotation to JPEG orientation.
@@ -122,7 +138,7 @@ public class RawRgbCapture extends AppCompatActivity {
         ORIENTATIONS.append(Surface.ROTATION_270, 270);
     }
 
-    private static int          PORTION_OF_IMAGE_DIVISOR = 5;
+    private static int          PORTION_OF_IMAGE_DIVISOR = 1;
     private static final int    MAX_IMAGES = 5;
     private static final long   PRECAPTURE_TIMEOUT_MS = 1000;
     private static final double ASPECT_RATIO_TOLERANCE = 0.005;
@@ -149,10 +165,26 @@ public class RawRgbCapture extends AppCompatActivity {
     private GoogleApiClient client;
 
     @Override
+    public void onWindowFocusChanged(boolean hasFocus){
+        super.onWindowFocusChanged(hasFocus);
+        if(hasFocus) {
+            mCoordinatorLayout.setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+        }
+
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_raw_rgb_capture);
         mActivityContext = RawRgbCapture.this;
+        mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
@@ -164,7 +196,6 @@ public class RawRgbCapture extends AppCompatActivity {
         editor.commit();
 
         //Set maximum volume for device so that we can here the shutter sound.
-        AudioManager mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         int origionalVolume = mAudioManager.getStreamVolume(AudioManager.STREAM_RING);
         mAudioManager.setStreamVolume(AudioManager.STREAM_RING, mAudioManager.getStreamMaxVolume(AudioManager.STREAM_RING), 0);
 
@@ -356,17 +387,52 @@ public class RawRgbCapture extends AppCompatActivity {
         return true;
     }
 
+    private void deleteDirectory(File pDirectory){
+        if (pDirectory.exists()) {
+            File[] filesInDirectory = pDirectory.listFiles();
+            if(null != filesInDirectory) {
+                for(int index = 0; index < filesInDirectory.length; index++) {
+                    if(filesInDirectory[index].isDirectory()) {
+                        deleteDirectory(filesInDirectory[index]);
+                    }
+                    else {
+                        filesInDirectory[index].delete();
+                    }
+                }
+            }
+            pDirectory.delete();
+            MediaScannerConnection.scanFile(RawRgbCapture.this, new String[]{pDirectory.getAbsolutePath()}, null, new MyOnScanCompletedListener());
+        }
+    }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
-//        if (id == R.id.action_settings) {
-//            return true;
-//        }
+        if (id == R.id.action_settings) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(RawRgbCapture.this, R.style.MyAlertDialogStyle);
+            builder.setTitle("Log Clear");
+            builder.setMessage("Do not confirm unless you want the logs to be completely erased. This will clear up all logging on the device.");
+            builder.setPositiveButton("Delete All", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(RawRgbCapture.this, R.style.MyAlertDialogStyle);
+                    builder.setTitle("Are you sure James?");
+                    builder.setMessage("This will clear the logs and remove previous logging.  Take anything off you might need first.");
+                    builder.setPositiveButton("Sure, DELETE", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            deleteDirectory(new File(Environment.getExternalStorageDirectory(), "rawRgbCaptureData"));
+                        }
+                    });
+                    builder.setNegativeButton("Cancel", null);
+                    builder.show();
+                }
+            });
+            builder.setNegativeButton("Cancel", null);
+            builder.show();
+            return true;
+        }
 
         return super.onOptionsItemSelected(item);
     }
@@ -1467,7 +1533,7 @@ public class RawRgbCapture extends AppCompatActivity {
      * This can be constructed through an {@link ImageSaverBuilder} as the necessary image and
      * result information becomes available.
      */
-    private static class ImageSaver implements Runnable {
+    public static class ImageSaver implements Runnable {
 
         private final Image mImage;
         private final String mTimestamp;
@@ -1592,12 +1658,13 @@ public class RawRgbCapture extends AppCompatActivity {
         }
 
         private void recordRgbData() throws IOException {
-            float regionOfInterestLength = mImage.getHeight() / (PORTION_OF_IMAGE_DIVISOR + 1); //Make the region smaller than the window so we can analzye well within the graphic.
-            int startRow = (int) ((mImage.getHeight() / 2.0f) - (regionOfInterestLength / 4.0f));
-            int startCol = (int) ((mImage.getWidth() / 2.0f) - (regionOfInterestLength / 4.0f));
-            int endRow = (int) ((mImage.getHeight() / 2.0f) + (regionOfInterestLength / 4.0f));
-            int endCol = (int) ((mImage.getWidth() / 2.0f) + (regionOfInterestLength / 4.0f));
-
+            float regionOfInterestLength = mImage.getHeight() / (PORTION_OF_IMAGE_DIVISOR) * 0.95f;
+            int startRow = (int) ((mImage.getHeight() / 2.0f) - (regionOfInterestLength / 2.0f));
+            int startCol = (int) ((mImage.getWidth() / 2.0f) - (regionOfInterestLength / 2.0f));
+            int endRow = (int) ((mImage.getHeight() / 2.0f) + (regionOfInterestLength / 2.0f));
+            int endCol = (int) ((mImage.getWidth() / 2.0f) + (regionOfInterestLength / 2.0f));
+            Point centerPoint = new Point((int)((float)mImage.getWidth() / 2.0f), (int)((float)mImage.getHeight() / 2.0f));
+            int radius = (int) (regionOfInterestLength / 2.0f * 0.95f);
 
             PrintWriter writer = null;
             BufferedWriter writerCombined = null;
@@ -1623,16 +1690,20 @@ public class RawRgbCapture extends AppCompatActivity {
                 writer = new PrintWriter(rgbRawFile, "UTF-8");
                 writerCombined = new BufferedWriter(new FileWriter(combinedRgbRawFile, true));
                 double rawPixel[];
+                int numberOfPixels = 0;
                 for (int rowIndex = startRow; rowIndex < endRow; rowIndex++) {
                     for (int colIndex = startCol; colIndex < endCol; colIndex++) {
-                        rawPixel = getRawPixel(rowIndex, colIndex);
-                        averageR += rawPixel[0];
-                        averageG += rawPixel[1];
-                        averageB += rawPixel[2];
-                        writer.println("" + rawPixel[0] + ", " + rawPixel[1] + ", " + rawPixel[2]);
+                        if(insideCircle(colIndex, rowIndex, centerPoint, radius)) {
+                            rawPixel = getRawPixel(rowIndex, colIndex);
+                            averageR += rawPixel[0];
+                            averageG += rawPixel[1];
+                            averageB += rawPixel[2];
+                            writer.println("" + rawPixel[0] + ", " + rawPixel[1] + ", " + rawPixel[2]);
+                            numberOfPixels++;
+                        }
                     }
                 }
-                int numberOfPixels = (endRow - startRow) * (endRow - startRow);
+
                 writerCombined.append("" + (averageR / numberOfPixels) + ", " +
                         (averageG / numberOfPixels) + ", " +
                         (averageB / numberOfPixels) + "\n");
@@ -1665,6 +1736,17 @@ public class RawRgbCapture extends AppCompatActivity {
             }
         }
 
+        private boolean insideCircle(int pXcoord, int pYcoord, Point pCenterPoint, int pRadius){
+            boolean isWithin = false;
+
+            double distance = Math.sqrt((Math.pow((pXcoord - pCenterPoint.x), 2) + (Math.pow((pYcoord - pCenterPoint.y), 2))));
+            if(distance < pRadius){
+                isWithin = true;
+            }
+
+            return isWithin;
+        }
+
         /**
          * Shows a {@link Toast} on the UI thread.
          *
@@ -1674,6 +1756,8 @@ public class RawRgbCapture extends AppCompatActivity {
 //            isPhotoInProgress = false;
             Snackbar.make(mCoordinatorLayout, text, Snackbar.LENGTH_LONG)
                     .setAction("Action", null).show();
+            //Set maximum volume for device so that we can here the shutter sound.
+            mAudioManager.setStreamVolume(AudioManager.STREAM_RING, mAudioManager.getStreamMaxVolume(AudioManager.STREAM_RING), 0);
         }
 
 
@@ -1732,15 +1816,6 @@ public class RawRgbCapture extends AppCompatActivity {
             }
 
 
-        }
-
-        private class MyOnScanCompletedListener implements MediaScannerConnection.OnScanCompletedListener {
-            @Override
-            public void onScanCompleted(String path, Uri uri) {
-                if (uri != null && path != null) {
-                    Log.d(Constants.LOG_TAG, String.format("Scanned path %s -> URI = %s", path, uri.toString()));
-                }
-            }
         }
 
         /**
@@ -2099,6 +2174,37 @@ public class RawRgbCapture extends AppCompatActivity {
         return (SystemClock.elapsedRealtime() - mCaptureTimer) > PRECAPTURE_TIMEOUT_MS;
     }
 
+    // This snippet hides the system bars.
+    private void hideSystemUI() {
+        // Set the IMMERSIVE flag.
+        // Set the content to appear under the system bars so that the content
+        // doesn't resize when the system bars hide and show.
+        mCoordinatorLayout.setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION // hide nav bar
+                        | View.SYSTEM_UI_FLAG_FULLSCREEN // hide status bar
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE);
+    }
+
+    // This snippet shows the system bars. It does this by removing all the flags
+// except for the ones that make the content appear under the system bars.
+    private void showSystemUI() {
+        mCoordinatorLayout.setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+    }
+
     // *********************************************************************************************
 
+    public static class MyOnScanCompletedListener implements MediaScannerConnection.OnScanCompletedListener {
+        @Override
+        public void onScanCompleted(String path, Uri uri) {
+            if (uri != null && path != null) {
+                Log.d(Constants.LOG_TAG, String.format("Scanned path %s -> URI = %s", path, uri.toString()));
+            }
+        }
+    }
 }
