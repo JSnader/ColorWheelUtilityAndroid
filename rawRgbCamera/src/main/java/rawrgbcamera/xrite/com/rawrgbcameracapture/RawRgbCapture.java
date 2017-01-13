@@ -30,8 +30,9 @@ import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.AudioManager;
 import android.media.Image;
 import android.media.ImageReader;
-import android.media.MediaActionSound;
 import android.media.MediaScannerConnection;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -101,30 +102,22 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class RawRgbCapture extends AppCompatActivity {
-    private static AudioManager         mAudioManager;
-    private static CoordinatorLayout    mCoordinatorLayout;
-    private SeekBar                     mExposureBar, mIsoBar, mOverlaySizeBar;
-    private TextView                    mExposureTextView, mIsoTextView;
-    private static TextView             mRgbTextView;
-    private Switch                      mFocusLockSwitch, mExposureLockSwitch;
-    private static boolean              mIsCheckingPosition = false;
-    private int                         mViewWidth = 0;
-    private static Activity             mActivityContext;
-    private SharedPreferences           mSharedPreferences;
+    private static AudioManager mAudioManager;
+    private static CoordinatorLayout mCoordinatorLayout;
+    private SeekBar mExposureBar, mIsoBar, mOverlaySizeBar;
+    private TextView mExposureTextView, mIsoTextView;
+    private static TextView mRgbTextView;
+    private Switch mFocusLockSwitch, mExposureLockSwitch;
+    private static boolean mIsCheckingPosition = false;
+    private int mViewWidth = 0;
+    private static Activity mActivityContext;
+    private SharedPreferences mSharedPreferences;
 
-    private static int                  mSharedPrefSession;
-    final GestureDetector               mClickDetector = new GestureDetector(RawRgbCapture.this, new GestureDetector.SimpleOnGestureListener(){
-                                                        @Override
-                                                        public boolean onSingleTapUp(MotionEvent pEvent) {
-                                                            boolean visible = (mCoordinatorLayout.getSystemUiVisibility() & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0;
-                                                            if(visible) {
-                                                                hideSystemUI();
-                                                            }else {
-                                                                showSystemUI();
-                                                            }
-                                                            return true;
-                                                        }
-                                                    });
+    private static int mSharedPrefSession;
+    private GestureDetector mGestureDetector;
+
+    int mFilterArrangement = 0;//RGGB
+    static double[] mCorrectedPixel = new double[3];
 
     /**
      * Conversion from screen rotation to JPEG orientation.
@@ -138,10 +131,11 @@ public class RawRgbCapture extends AppCompatActivity {
         ORIENTATIONS.append(Surface.ROTATION_270, 270);
     }
 
-    private static int          PORTION_OF_IMAGE_DIVISOR = 1;
-    private static final int    MAX_IMAGES = 5;
-    private static final long   PRECAPTURE_TIMEOUT_MS = 1000;
+    private static int PORTION_OF_IMAGE_DIVISOR = 1;
+    private static final int MAX_IMAGES = 2;
+    private static final long PRECAPTURE_TIMEOUT_MS = 1000;
     private static final double ASPECT_RATIO_TOLERANCE = 0.005;
+    private static final float OVERLAY_PADDING = 0.95f;
     private static final String TAG = "Camera2RawFragment";
 
     private static final int STATE_CLOSED = 0;
@@ -156,8 +150,8 @@ public class RawRgbCapture extends AppCompatActivity {
      * onCreate or onConfigurationChanged is not called as the view dimensions remain the same,
      * but the orientation of the has changed, and thus the preview rotation must be updated.
      */
-    private OrientationEventListener    mOrientationListener;
-    private static String               mCurrentDateTime;
+    private OrientationEventListener mOrientationListener;
+    private static String mCurrentDateTime;
     /**
      * ATTENTION: This was auto-generated to implement the App Indexing API.
      * See https://g.co/AppIndexing/AndroidStudio for more information.
@@ -165,16 +159,16 @@ public class RawRgbCapture extends AppCompatActivity {
     private GoogleApiClient client;
 
     @Override
-    public void onWindowFocusChanged(boolean hasFocus){
+    public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
-        if(hasFocus) {
+        if (hasFocus) {
             mCoordinatorLayout.setSystemUiVisibility(
                     View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                    | View.SYSTEM_UI_FLAG_FULLSCREEN
-                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         }
 
     }
@@ -220,7 +214,7 @@ public class RawRgbCapture extends AppCompatActivity {
                         editor.apply();
                         editor.commit();
                         try {
-                            if(fromUser) {
+                            if (fromUser) {
                                 mCaptureSession.setRepeatingRequest(
                                         mPreviewRequestBuilder.build(),
                                         mPreCaptureCallback, mBackgroundHandler);
@@ -285,7 +279,7 @@ public class RawRgbCapture extends AppCompatActivity {
                         editor.apply();
                         editor.commit();
                         try {
-                            if(fromUser) {
+                            if (fromUser) {
                                 mCaptureSession.setRepeatingRequest(
                                         mPreviewRequestBuilder.build(),
                                         mPreCaptureCallback, mBackgroundHandler);
@@ -309,12 +303,12 @@ public class RawRgbCapture extends AppCompatActivity {
         });
         mFocusLockSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+            public void onCheckedChanged(CompoundButton pButtonView, boolean pIsChecked) {
                 synchronized (mCameraStateLock) {
-                    if (isChecked) {
+                    if (pIsChecked) {
                         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
                     } else {
-                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO);
+                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
                     }
                     try {
                         mCaptureSession.setRepeatingRequest(
@@ -324,6 +318,18 @@ public class RawRgbCapture extends AppCompatActivity {
                         e.printStackTrace();
                     }
                 }
+            }
+        });
+        mGestureDetector = new GestureDetector(RawRgbCapture.this, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onSingleTapUp(MotionEvent pEvent) {
+                boolean visible = (mCoordinatorLayout.getSystemUiVisibility() & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0;
+                if (visible) {
+                    hideSystemUI();
+                } else {
+                    showSystemUI();
+                }
+                return true;
             }
         });
         mExposureLockSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -387,15 +393,14 @@ public class RawRgbCapture extends AppCompatActivity {
         return true;
     }
 
-    private void deleteDirectory(File pDirectory){
+    private void deleteDirectory(File pDirectory) {
         if (pDirectory.exists()) {
             File[] filesInDirectory = pDirectory.listFiles();
-            if(null != filesInDirectory) {
-                for(int index = 0; index < filesInDirectory.length; index++) {
-                    if(filesInDirectory[index].isDirectory()) {
+            if (null != filesInDirectory) {
+                for (int index = 0; index < filesInDirectory.length; index++) {
+                    if (filesInDirectory[index].isDirectory()) {
                         deleteDirectory(filesInDirectory[index]);
-                    }
-                    else {
+                    } else {
                         filesInDirectory[index].delete();
                     }
                 }
@@ -756,7 +761,7 @@ public class RawRgbCapture extends AppCompatActivity {
                 customDirectory.mkdir();
             }
             File sessionDirectory = new File(customDirectory, "Session" + mSharedPrefSession);
-            if(!sessionDirectory.exists()) {
+            if (!sessionDirectory.exists()) {
                 sessionDirectory.mkdir();
             }
             File rawFile = new File(sessionDirectory,
@@ -965,7 +970,11 @@ public class RawRgbCapture extends AppCompatActivity {
 
             // Attempt to open the camera. mStateCallback will be called on the background handler's
             // thread when this succeeds or fails.
-            manager.openCamera(cameraId, mStateCallback, backgroundHandler);
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                return;
+            }else {
+                manager.openCamera(cameraId, mStateCallback, backgroundHandler);
+            }
         } catch (CameraAccessException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
@@ -1321,8 +1330,6 @@ public class RawRgbCapture extends AppCompatActivity {
 //            return;
 //        }
 //        isPhotoInProgress = true;
-        MediaActionSound sound = new MediaActionSound();
-        sound.play(MediaActionSound.SHUTTER_CLICK);
         synchronized (mCameraStateLock) {
             mPendingUserCaptures++;
 
@@ -1376,8 +1383,13 @@ public class RawRgbCapture extends AppCompatActivity {
 //                return;
 //            }
 //            isPhotoInProgress = true;
-            MediaActionSound sound = new MediaActionSound();
-            sound.play(MediaActionSound.SHUTTER_CLICK);
+            try {
+                Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                Ringtone r = RingtoneManager.getRingtone(mActivityContext, notification);
+                r.play();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
 
             final Activity activity = RawRgbCapture.this;
             if (null == activity || null == mCameraDevice) {
@@ -1462,6 +1474,9 @@ public class RawRgbCapture extends AppCompatActivity {
             Map.Entry<Integer, ImageSaver.ImageSaverBuilder> entry =
                     pendingQueue.firstEntry();
 
+            if(entry == null) {
+                return;
+            }
             ImageSaver.ImageSaverBuilder builder = entry.getValue();
 
             // Increment reference count to prevent ImageReader from being closed while we
@@ -1555,35 +1570,33 @@ public class RawRgbCapture extends AppCompatActivity {
             mReader = reader;
         }
 
-        private double[] reformatForRggb(int formatF, double[] rggbPixelF) {
-            double[] correctedPixel = new double[3];
+        private void reformatForRggb(int formatF, double[] rggbPixelF) {
+
 
             switch (formatF) {
                 case 0: //RGGB
-                    correctedPixel[0] = rggbPixelF[0];
-                    correctedPixel[1] = (rggbPixelF[1] + rggbPixelF[2]) / 2;
-                    correctedPixel[2] = rggbPixelF[3];
+                    mCorrectedPixel[0] = rggbPixelF[0];
+                    mCorrectedPixel[1] = (rggbPixelF[1] + rggbPixelF[2]) / 2;
+                    mCorrectedPixel[2] = rggbPixelF[3];
                     break;
                 case 1: //GRBG
-                    correctedPixel[0] = rggbPixelF[1];
-                    correctedPixel[1] = (rggbPixelF[0] + rggbPixelF[3]) / 2;
-                    correctedPixel[2] = rggbPixelF[2];
+                    mCorrectedPixel[0] = rggbPixelF[1];
+                    mCorrectedPixel[1] = (rggbPixelF[0] + rggbPixelF[3]) / 2;
+                    mCorrectedPixel[2] = rggbPixelF[2];
                     break;
                 case 2: //GBRG
-                    correctedPixel[0] = rggbPixelF[2];
-                    correctedPixel[1] = (rggbPixelF[3] + rggbPixelF[0]) / 2;
-                    correctedPixel[2] = rggbPixelF[1];
+                    mCorrectedPixel[0] = rggbPixelF[2];
+                    mCorrectedPixel[1] = (rggbPixelF[3] + rggbPixelF[0]) / 2;
+                    mCorrectedPixel[2] = rggbPixelF[1];
                     break;
                 case 3: //BGGR
-                    correctedPixel[0] = rggbPixelF[3];
-                    correctedPixel[1] = (rggbPixelF[1] + rggbPixelF[2]) / 2;
-                    correctedPixel[2] = rggbPixelF[0];
+                    mCorrectedPixel[0] = rggbPixelF[3];
+                    mCorrectedPixel[1] = (rggbPixelF[1] + rggbPixelF[2]) / 2;
+                    mCorrectedPixel[2] = rggbPixelF[0];
                     break;
                 case 4: //RGB Sensor is not Bayer; output has 3 16-bit values for each pixel, instead of just 1 16-bit value per pixel.
                     break;
             }
-
-            return correctedPixel;
         }
 
         private double[] getRawPixelBayerFormat(int rowF, int colF) {
@@ -1651,20 +1664,19 @@ public class RawRgbCapture extends AppCompatActivity {
             return bayerPixel;
         }
 
-        private double[] getRawPixel(int rowF, int colF) {
-            Integer filterArrangement = mCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
-            double[] correctedPixel = reformatForRggb(filterArrangement, getRawPixelBayerFormat(rowF, colF));
-            return correctedPixel;
+        private void getRawPixel(int rowF, int colF) {
+//            Integer filterArrangement = mCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
+            reformatForRggb(0, getRawPixelBayerFormat(rowF, colF));
         }
 
         private void recordRgbData() throws IOException {
-            float regionOfInterestLength = mImage.getHeight() / (PORTION_OF_IMAGE_DIVISOR) * 0.95f;
+            float regionOfInterestLength = mImage.getHeight() / (PORTION_OF_IMAGE_DIVISOR) * OVERLAY_PADDING;
             int startRow = (int) ((mImage.getHeight() / 2.0f) - (regionOfInterestLength / 2.0f));
             int startCol = (int) ((mImage.getWidth() / 2.0f) - (regionOfInterestLength / 2.0f));
             int endRow = (int) ((mImage.getHeight() / 2.0f) + (regionOfInterestLength / 2.0f));
             int endCol = (int) ((mImage.getWidth() / 2.0f) + (regionOfInterestLength / 2.0f));
             Point centerPoint = new Point((int)((float)mImage.getWidth() / 2.0f), (int)((float)mImage.getHeight() / 2.0f));
-            int radius = (int) (regionOfInterestLength / 2.0f * 0.95f);
+            int radius = (int) (regionOfInterestLength / 2.0f * OVERLAY_PADDING);
 
             PrintWriter writer = null;
             BufferedWriter writerCombined = null;
@@ -1687,23 +1699,28 @@ public class RawRgbCapture extends AppCompatActivity {
                 rgbRawFile = new File(sessionDirectory, "RAW_" + mTimestamp + "rgbs.txt");
                 combinedRgbRawFile = new File(sessionDirectory, "RAW_combinedRGBs.txt");
 
-                writer = new PrintWriter(rgbRawFile, "UTF-8");
+                writer = new PrintWriter(new BufferedWriter(new FileWriter(rgbRawFile)),false);
                 writerCombined = new BufferedWriter(new FileWriter(combinedRgbRawFile, true));
-                double rawPixel[];
                 int numberOfPixels = 0;
+                StringBuffer stringBuffer = new StringBuffer(endRow * endCol * 50);
+                final String COMMA = ",";
+                final String NEWLINE = "\n";
+                long startTime = System.currentTimeMillis();
+                StringBuilder builder = new StringBuilder();
                 for (int rowIndex = startRow; rowIndex < endRow; rowIndex++) {
                     for (int colIndex = startCol; colIndex < endCol; colIndex++) {
                         if(insideCircle(colIndex, rowIndex, centerPoint, radius)) {
-                            rawPixel = getRawPixel(rowIndex, colIndex);
-                            averageR += rawPixel[0];
-                            averageG += rawPixel[1];
-                            averageB += rawPixel[2];
-                            writer.println("" + rawPixel[0] + ", " + rawPixel[1] + ", " + rawPixel[2]);
+                            getRawPixel(rowIndex, colIndex);
+                            averageR += mCorrectedPixel[0];
+                            averageG += mCorrectedPixel[1];
+                            averageB += mCorrectedPixel[2];
+                            writer.print(mCorrectedPixel[0] + COMMA + mCorrectedPixel[1] + COMMA + mCorrectedPixel[2] + NEWLINE);
                             numberOfPixels++;
                         }
                     }
                 }
-
+                writer.flush();
+                Log.e("Check", "Time for loop equals " + (System.currentTimeMillis() - startTime));
                 writerCombined.append("" + (averageR / numberOfPixels) + ", " +
                         (averageG / numberOfPixels) + ", " +
                         (averageB / numberOfPixels) + "\n");
@@ -1787,10 +1804,19 @@ public class RawRgbCapture extends AppCompatActivity {
                     DngCreator dngCreator = new DngCreator(mCharacteristics, mCaptureResult);
                     FileOutputStream output = null;
                     try {
+                        long startTime = System.currentTimeMillis();
                         recordRgbData();
+                        Log.e("Check", "Time equals " + (System.currentTimeMillis() - startTime));
                         output = new FileOutputStream(mFile);
                         dngCreator.writeImage(output, mImage);
                         success = true;
+                        try {
+                            Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                            Ringtone r = RingtoneManager.getRingtone(mContext, notification);
+                            r.play();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     } catch (IOException e) {
                         e.printStackTrace();
                     } finally {
