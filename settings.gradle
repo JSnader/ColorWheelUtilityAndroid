@@ -1,1 +1,1 @@
-include ':rawRgbCamera'
+include ':rawRgbCamera', ':libXriteCamera', ':libXriteImage', ':libUniversalColorPicker'
