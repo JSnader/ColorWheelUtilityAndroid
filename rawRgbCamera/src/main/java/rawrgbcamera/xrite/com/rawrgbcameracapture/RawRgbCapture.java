@@ -116,7 +116,7 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
 
     public static int PORTION_OF_IMAGE_DIVISOR = 1;
     public static final double ASPECT_RATIO_TOLERANCE = 0.005;
-    public static final float OVERLAY_PADDING = 0.95f;
+    public static final float OVERLAY_PADDING = 0.80f;
     private static final String TAG = "Camera2RawFragment";
 
     /**mSharedPrefSession
