@@ -74,6 +74,11 @@ import cameralib.xrite.com.xritecameralibrary.XriteUcpCamera;
 import static rawrgbcamera.xrite.com.rawrgbcameracapture.Constants.MAXIMUM_SEEK_BAR_SETTING;
 import static rawrgbcamera.xrite.com.rawrgbcameracapture.R.id.imageView;
 
+/**
+ * A simple activity that is responsible for saving out rgb data in a dark environment with
+ * controlled exposure.  The information saved off is what fits within the overlay on the
+ * screen.  The rgbs from a raw capture device will be saved off.
+ */
 public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback, ListenerDataCompletion {
     private static AudioManager mAudioManager;
     private static CoordinatorLayout mCoordinatorLayout;
