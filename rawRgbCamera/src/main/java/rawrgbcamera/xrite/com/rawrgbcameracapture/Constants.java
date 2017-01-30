@@ -14,5 +14,5 @@ public class Constants {
     public final static String EXPOSURE_TIME_SETTING = "ExposureTime";
     public final static String ISO_SETTING = "Iso";
     public final static String OVERLAY_SIZE_SETTING = "OverlaySize";
-    public final static int MAXIMUM_SEEK_BAR_SETTING = 100;
+    public final static int MAXIMUM_SEEK_BAR_SETTING = 30;
 }

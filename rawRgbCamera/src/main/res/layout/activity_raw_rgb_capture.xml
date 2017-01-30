@@ -46,7 +46,7 @@
         android:layout_gravity="center"
         android:visibility="visible"/>
 
-    <com.xrite.universalcamera.XriteTextureView
+    <cameralib.xrite.com.xritecameralibrary.XriteTextureView
         android:id="@+id/texture"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -64,18 +64,6 @@
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
-        <SeekBar
-            android:id="@+id/seekBarISO"
-            style="@style/Widget.AppCompat.SeekBar.Discrete"
-            android:layout_width="200dp"
-            android:layout_height="wrap_content"
-            android:max="9900"
-            android:progress="0"
-            android:layout_alignParentBottom="true"
-            android:layout_alignParentLeft="true"
-            android:layout_alignParentStart="true"
-            android:paddingBottom="15dp"
-            android:paddingLeft="10dp"/>
 
         <TextView
             android:id="@+id/textViewISO"
@@ -89,75 +77,54 @@
         <SeekBar
             android:id="@+id/seekBarExposureTime"
             style="@style/Widget.AppCompat.SeekBar.Discrete"
-            android:layout_width="200dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:max="100"
             android:progress="0"
-            android:paddingBottom="15dp"
+            android:paddingBottom="10dp"
             android:paddingLeft="10dp"
             android:layout_above="@+id/textViewISO"/>
 
-        <TextView
-            android:id="@+id/textViewExposureTime"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_above="@+id/seekBarExposureTime"
-            android:text="Exposure Time (ms): "
-            android:textColor="@color/colorAccent"
-            android:paddingLeft="10dp"/>
+        <!--<SeekBar-->
+            <!--android:id="@+id/seekBarExposure"-->
+            <!--style="@style/Widget.AppCompat.SeekBar.Discrete"-->
+            <!--android:layout_width="200dp"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:max="10"-->
+            <!--android:progress="0"-->
+            <!--android:layout_alignParentBottom="true"-->
+            <!--android:paddingBottom="15dp"-->
+            <!--android:paddingLeft="10dp"/>-->
 
-        <SeekBar
-            android:id="@+id/seekBarExposure"
-            style="@style/Widget.AppCompat.SeekBar.Discrete"
-            android:layout_width="200dp"
-            android:layout_height="wrap_content"
-            android:max="10"
-            android:progress="0"
-            android:layout_above="@id/textViewExposureTime"
-            android:paddingBottom="15dp"
-            android:paddingLeft="10dp"/>
+        <!--<TextView-->
+            <!--android:id="@+id/textViewExposure"-->
+            <!--android:layout_width="wrap_content"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:layout_above="@+id/seekBarExposure"-->
+            <!--android:text="Exposure: "-->
+            <!--android:textColor="@color/common_action_bar_splitter"-->
+            <!--android:paddingLeft="10dp"/>-->
 
-        <TextView
-            android:id="@+id/textViewExposure"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_above="@+id/seekBarExposure"
-            android:text="Exposure: "
-            android:textColor="@color/common_action_bar_splitter"
-            android:paddingLeft="10dp"/>
-
-        <Switch
-            android:text="Focus Lock      "
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_above="@+id/textViewExposure"
-            android:layout_alignLeft="@id/textViewExposure"
-            android:textColor="@color/colorAccent"
-            android:layout_marginStart="11dp"
-            android:paddingBottom="15dp"
-            android:id="@+id/switchFocusLock" />
-        <Switch
-            android:text="Exposure Lock"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_above="@+id/switchFocusLock"
-            android:layout_alignLeft="@id/textViewExposure"
-            android:textColor="@color/common_action_bar_splitter"
-            android:layout_marginStart="11dp"
-            android:paddingBottom="15dp"
-            android:id="@+id/switchExposureLock" />
-        <SeekBar
-            style="@style/Widget.AppCompat.SeekBar.Discrete"
-            android:text="Target Size"
-            android:layout_width="200dp"
-            android:layout_height="wrap_content"
-            android:max="20"
-            android:progress="5"
-            android:textColor="@color/colorAccent"
-            android:id="@+id/seekBarSize"
-            android:layout_above="@id/switchExposureLock"
-            android:paddingBottom="15dp"
-            android:paddingLeft="10dp"/>
+        <!--<Switch-->
+            <!--android:text="Focus Lock      "-->
+            <!--android:layout_width="wrap_content"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:layout_above="@+id/switchExposureLock"-->
+            <!--android:layout_alignLeft="@id/textViewExposure"-->
+            <!--android:textColor="@color/colorAccent"-->
+            <!--android:layout_marginStart="11dp"-->
+            <!--android:paddingBottom="15dp"-->
+            <!--android:id="@+id/switchFocusLock" />-->
+        <!--<Switch-->
+            <!--android:text="Exposure Lock"-->
+            <!--android:layout_width="wrap_content"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:layout_alignLeft="@id/textViewExposure"-->
+            <!--android:textColor="@color/common_action_bar_splitter"-->
+            <!--android:layout_above="@+id/textViewExposure"-->
+            <!--android:layout_marginStart="11dp"-->
+            <!--android:paddingBottom="15dp"-->
+            <!--android:id="@+id/switchExposureLock" />-->
 
         <TextView
             android:id="@+id/textViewRgbs"
@@ -168,5 +135,63 @@
             android:text="R:\nG:\nB:\n"
             android:layout_alignParentStart="true"
             android:layout_marginTop="80dp"/>
+
+        <SeekBar
+            android:id="@+id/seekBarSize"
+            style="@style/Widget.AppCompat.SeekBar.Discrete"
+            android:text="Target Size"
+            android:layout_width="200dp"
+            android:layout_height="wrap_content"
+            android:max="20"
+            android:progress="5"
+            android:textColor="@color/common_action_bar_splitter"
+            android:paddingBottom="10dp"
+            android:paddingLeft="10dp"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentStart="true" />
+
+        <SeekBar
+            android:id="@+id/seekBarISO"
+            style="@style/Widget.AppCompat.SeekBar.Discrete"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:progress="0"
+            android:paddingBottom="10dp"
+            android:paddingLeft="10dp"
+            android:layout_above="@+id/textViewOverlaySize"
+            android:layout_alignParentStart="true" />
+
+        <TextView
+            android:id="@+id/textViewExposureTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Exposure Time (ms): "
+            android:textColor="@color/colorAccent"
+            android:paddingLeft="10dp"
+            android:layout_above="@+id/seekBarExposureTime"
+            android:layout_alignParentStart="true"
+            android:layout_marginBottom="15dp"/>
+        <EditText
+            android:id="@+id/editTextExposureTime"
+            android:layout_width="75dp"
+            android:textColor="@color/colorAccent"
+            android:layout_height="wrap_content"
+            android:layout_toRightOf="@id/textViewExposureTime"
+            android:layout_above="@+id/seekBarExposureTime"
+            android:cursorVisible="false"
+            android:selectAllOnFocus="true"
+            android:inputType="number"
+            android:paddingLeft="10dp" />
+
+        <TextView
+            android:id="@+id/textViewOverlaySize"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Overlay Size"
+            android:textColor="@color/colorAccent"
+            android:paddingLeft="10dp"
+            android:layout_above="@+id/seekBarSize"
+            android:layout_alignParentStart="true" />
     </RelativeLayout>
 </android.support.design.widget.CoordinatorLayout>

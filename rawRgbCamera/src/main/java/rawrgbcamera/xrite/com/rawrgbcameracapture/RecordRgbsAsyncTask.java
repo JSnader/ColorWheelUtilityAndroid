@@ -41,9 +41,9 @@ public class RecordRgbsAsyncTask extends AsyncTask<Void, Void, Void> {
     private int mAverageR, mAverageG, mAverageB;
     private String mTimestamp;
     private int mSharedPrefSession;
-    private DataSaveCompletionCallback mCallback;
+    private ListenerDataCompletion mCallback;
 
-    public RecordRgbsAsyncTask(Context pContext, DataSaveCompletionCallback pCallback, UcpImage pUcpImage, TextView pTextView, int pSharedPrefSession, String pTimestamp)
+    public RecordRgbsAsyncTask(Context pContext, ListenerDataCompletion pCallback, UcpImage pUcpImage, TextView pTextView, int pSharedPrefSession, String pTimestamp)
     {
         mContext = pContext;
         mCallback = pCallback;
@@ -62,7 +62,6 @@ public class RecordRgbsAsyncTask extends AsyncTask<Void, Void, Void> {
     @Override
     protected void onPostExecute(Void aVoid) {
         super.onPostExecute(aVoid);
-
         mCallback.onDataCompletion();
     }
 
@@ -221,7 +220,7 @@ public class RecordRgbsAsyncTask extends AsyncTask<Void, Void, Void> {
             }
         }
 
-        MediaScannerConnection.scanFile(mContext, new String[]{jpegFile.getAbsolutePath()}, null, new MyOnScanCompletedListener());
+        MediaScannerConnection.scanFile(mContext, new String[]{jpegFile.getAbsolutePath()}, null, new ListenerFileScannerCompletion());
     }
 
     private void saveRaw(File pSessionDirectory) {
@@ -247,7 +246,7 @@ public class RecordRgbsAsyncTask extends AsyncTask<Void, Void, Void> {
             }
         }
 
-        MediaScannerConnection.scanFile(mContext, new String[]{rawFile.getAbsolutePath()}, null, new MyOnScanCompletedListener());
+        MediaScannerConnection.scanFile(mContext, new String[]{rawFile.getAbsolutePath()}, null, new ListenerFileScannerCompletion());
     }
 
     private void getRawPixel(int rowF, int colF) {
@@ -286,7 +285,6 @@ public class RecordRgbsAsyncTask extends AsyncTask<Void, Void, Void> {
             writer = new PrintWriter(new BufferedWriter(new FileWriter(rgbRawFile)),false);
             writerCombined = new BufferedWriter(new FileWriter(combinedRgbRawFile, true));
             int numberOfPixels = 0;
-            StringBuffer stringBuffer = new StringBuffer(endRow * endCol * 50);
             final String COMMA = ",";
             final String NEWLINE = "\n";
             long startTime = System.currentTimeMillis();
@@ -324,10 +322,10 @@ public class RecordRgbsAsyncTask extends AsyncTask<Void, Void, Void> {
         }
 
         if (rgbRawFile != null) {
-            MediaScannerConnection.scanFile(mContext, new String[]{rgbRawFile.getAbsolutePath()}, null, new MyOnScanCompletedListener());
+            MediaScannerConnection.scanFile(mContext, new String[]{rgbRawFile.getAbsolutePath()}, null, new ListenerFileScannerCompletion());
         }
         if (combinedRgbRawFile != null) {
-            MediaScannerConnection.scanFile(mContext, new String[]{combinedRgbRawFile.getAbsolutePath()}, null, new MyOnScanCompletedListener());
+            MediaScannerConnection.scanFile(mContext, new String[]{combinedRgbRawFile.getAbsolutePath()}, null, new ListenerFileScannerCompletion());
         }
     }
 

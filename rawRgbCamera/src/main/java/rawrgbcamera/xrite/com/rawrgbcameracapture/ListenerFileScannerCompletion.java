@@ -8,7 +8,7 @@ import android.util.Log;
  * Created by jsnader on 1/16/17.
  */
 
-public class MyOnScanCompletedListener implements MediaScannerConnection.OnScanCompletedListener {
+public class ListenerFileScannerCompletion implements MediaScannerConnection.OnScanCompletedListener {
     @Override
     public void onScanCompleted(String path, Uri uri) {
         if (uri != null && path != null) {

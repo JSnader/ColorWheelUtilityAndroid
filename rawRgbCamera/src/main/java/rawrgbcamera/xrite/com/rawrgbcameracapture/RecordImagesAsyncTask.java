@@ -93,7 +93,7 @@ public class RecordImagesAsyncTask extends AsyncTask<Void, Void, Void> {
             }
         }
 
-        MediaScannerConnection.scanFile(mContext, new String[]{jpegFile.getAbsolutePath()}, null, new MyOnScanCompletedListener());
+        MediaScannerConnection.scanFile(mContext, new String[]{jpegFile.getAbsolutePath()}, null, new ListenerFileScannerCompletion());
     }
 
     private void saveRaw(File pSessionDirectory) {
@@ -120,6 +120,6 @@ public class RecordImagesAsyncTask extends AsyncTask<Void, Void, Void> {
             }
         }
 
-        MediaScannerConnection.scanFile(mContext, new String[]{rawFile.getAbsolutePath()}, null, new MyOnScanCompletedListener());
+        MediaScannerConnection.scanFile(mContext, new String[]{rawFile.getAbsolutePath()}, null, new ListenerFileScannerCompletion());
     }
 }

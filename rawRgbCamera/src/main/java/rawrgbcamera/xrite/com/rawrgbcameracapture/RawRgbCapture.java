@@ -42,10 +42,9 @@ import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.CompoundButton;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.SeekBar;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -54,34 +53,35 @@ import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.appindexing.Thing;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.xrite.imageclasses.UcpImage;
-import com.xrite.universalcamera.SnapshotSettings;
-import com.xrite.universalcamera.UcpImageCallback;
-import com.xrite.universalcamera.XriteCameraCallback;
-import com.xrite.universalcamera.XriteCameraException;
-import com.xrite.universalcamera.XriteCameraExposureMode;
-import com.xrite.universalcamera.XriteCameraFactory;
-import com.xrite.universalcamera.XriteCameraFocusMode;
-import com.xrite.universalcamera.XriteCameraSettings;
-import com.xrite.universalcamera.XriteSize;
-import com.xrite.universalcamera.XriteTextureView;
-import com.xrite.universalcamera.XriteUcpCamera;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
+import cameralib.xrite.com.xritecameralibrary.SnapshotSettings;
+import cameralib.xrite.com.xritecameralibrary.UcpImageCallback;
+import cameralib.xrite.com.xritecameralibrary.XriteCameraCallback;
+import cameralib.xrite.com.xritecameralibrary.XriteCameraException;
+import cameralib.xrite.com.xritecameralibrary.XriteCameraExposureMode;
+import cameralib.xrite.com.xritecameralibrary.XriteCameraFactory;
+import cameralib.xrite.com.xritecameralibrary.XriteCameraFocusMode;
+import cameralib.xrite.com.xritecameralibrary.XriteCameraSettings;
+import cameralib.xrite.com.xritecameralibrary.XriteSize;
+import cameralib.xrite.com.xritecameralibrary.XriteTextureView;
+import cameralib.xrite.com.xritecameralibrary.XriteUcpCamera;
+
 import static rawrgbcamera.xrite.com.rawrgbcameracapture.Constants.MAXIMUM_SEEK_BAR_SETTING;
 import static rawrgbcamera.xrite.com.rawrgbcameracapture.R.id.imageView;
 
-public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback, DataSaveCompletionCallback {
+public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback, ListenerDataCompletion {
     private static AudioManager mAudioManager;
     private static CoordinatorLayout mCoordinatorLayout;
     private ImageView mOverlay;
     private SeekBar mExposureBar, mExposureTimeBar, mIsoBar, mOverlaySizeBar;
     private TextView mExposureTextView, mExposureTimeTextView, mIsoTextView;
+    private EditText mExposureEditTextView;
     private static TextView mRgbTextView;
-    private Switch mFocusLockSwitch, mExposureLockSwitch;
     private int mViewWidth = 0;
     private static Activity mActivityContext;
 
@@ -175,15 +175,42 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
         mAudioManager.setStreamVolume(AudioManager.STREAM_RING, mAudioManager.getStreamMaxVolume(AudioManager.STREAM_RING), 0);
 
         mCoordinatorLayout = (CoordinatorLayout) findViewById(R.id.coordinatorLayout);
-        mExposureTextView = (TextView) findViewById(R.id.textViewExposure);
+//        mExposureTextView = (TextView) findViewById(R.id.textViewExposure);
+        mExposureEditTextView = (EditText) findViewById(R.id.editTextExposureTime);
+        mExposureEditTextView.setFocusableInTouchMode(true);
+        mExposureEditTextView.requestFocus();
         mExposureTimeTextView = (TextView) findViewById(R.id.textViewExposureTime);
         mIsoTextView = (TextView) findViewById(R.id.textViewISO);
         mRgbTextView = (TextView) findViewById(R.id.textViewRgbs);
         mRgbTextView.bringToFront();
-        mFocusLockSwitch = (Switch) findViewById(R.id.switchFocusLock);
-        mExposureLockSwitch = (Switch) findViewById(R.id.switchExposureLock);
-        mExposureLockSwitch.setChecked(true);
-        mExposureLockSwitch.setEnabled(false);
+//        mFocusLockSwitch = (Switch) findViewById(R.id.switchFocusLock);
+//        mExposureLockSwitch = (Switch) findViewById(R.id.switchExposureLock);
+//        mExposureLockSwitch.setChecked(true);
+//        mExposureLockSwitch.setEnabled(false);
+        mExposureEditTextView.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                if ((event.getAction() == KeyEvent.ACTION_DOWN) &&
+                        (keyCode == KeyEvent.KEYCODE_ENTER)) {
+                    Range<Long> range2 = mXriteCamera.getExposureTimeRange();
+                    long max = range2.getUpper();
+                    long min = range2.getLower();
+                    long upperLimit = max - min;
+
+//                    int exposureTime = (int)(progress * (upperLimit / MAXIMUM_SEEK_BAR_SETTING) + min);
+//                    mExposureTimeTextView.setText("Exposure Time (ms): " + (exposureTime / 1000000));
+                    int exposureValue = Integer.parseInt(mExposureEditTextView.getText().toString())  * 1000000;
+                    if(exposureValue < min || exposureValue > max){
+                        return true;
+                    }
+                    int progressValue = (int)Math.floor(((double)exposureValue - min) / ((double)upperLimit / (double)MAXIMUM_SEEK_BAR_SETTING)) + 1;
+                    mExposureTimeBar.setProgress(progressValue);
+                    return true;
+                }
+                return false;
+            }
+        });
+
         mExposureTimeBar = (SeekBar)findViewById(R.id.seekBarExposureTime);
         mExposureTimeBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -193,7 +220,7 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
                 long min = range2.getLower();
                 long upperLimit = max - min;
                 int exposureTime = (int) Math.floor((progress * ((double)upperLimit / (double)MAXIMUM_SEEK_BAR_SETTING) + min));
-                mExposureTimeTextView.setText("Exposure Time (ms): " + (exposureTime / 1000000));
+                mExposureEditTextView.setText("" + exposureTime / 1000000);
                 if(fromUser) {
                     SharedPreferences.Editor editor = mSharedPreferences.edit();
                     editor.putInt(Constants.EXPOSURE_TIME_SETTING, progress);
@@ -213,32 +240,32 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
 
             }
         });
-        mExposureBar = (SeekBar) findViewById(R.id.seekBarExposure);
-        mExposureBar.setEnabled(false);
-        mExposureBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                int exposureLevel = progress - (int) Math.ceil((double) mExposureBar.getMax() / (double) 2.0f);
-                mExposureTextView.setText("Exposure: " + exposureLevel);
-                if(fromUser) {
-                    SharedPreferences.Editor editor = mSharedPreferences.edit();
-                    editor.putInt(Constants.EXPOSURE_SETTING, progress);
-                    editor.apply();
-                    editor.commit();
-                }
-                mXriteCamera.setExposure(exposureLevel);
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-
-            }
-        });
+//        mExposureBar = (SeekBar) findViewById(R.id.seekBarExposure);
+//        mExposureBar.setEnabled(false);
+//        mExposureBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+//            @Override
+//            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+//                int exposureLevel = progress - (int) Math.ceil((double) mExposureBar.getMax() / (double) 2.0f);
+//                mExposureTextView.setText("Exposure: " + exposureLevel);
+//                if(fromUser) {
+//                    SharedPreferences.Editor editor = mSharedPreferences.edit();
+//                    editor.putInt(Constants.EXPOSURE_SETTING, progress);
+//                    editor.apply();
+//                    editor.commit();
+//                }
+//                mXriteCamera.setExposure(exposureLevel);
+//            }
+//
+//            @Override
+//            public void onStartTrackingTouch(SeekBar seekBar) {
+//
+//            }
+//
+//            @Override
+//            public void onStopTrackingTouch(SeekBar seekBar) {
+//
+//            }
+//        });
         mOverlaySizeBar = (SeekBar) findViewById(R.id.seekBarSize);
         mOverlaySizeBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -297,16 +324,18 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
 
             }
         });
-        mFocusLockSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton pButtonView, boolean pIsChecked) {
-                if(pIsChecked) {
-                    mXriteCamera.setFocusMode(XriteCameraFocusMode.FIXED);
-                }else{
-                    mXriteCamera.setFocusMode(XriteCameraFocusMode.CONTINUOUS_PICTURE);
-                }
-            }
-        });
+//        mFocusLockSwitch.setChecked(false);
+//        mFocusLockSwitch.setEnabled(false);
+//        mFocusLockSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+//            @Override
+//            public void onCheckedChanged(CompoundButton pButtonView, boolean pIsChecked) {
+//                if(pIsChecked) {
+//                    mXriteCamera.setFocusMode(XriteCameraFocusMode.FIXED);
+//                }else{
+//                    mXriteCamera.setFocusMode(XriteCameraFocusMode.CONTINUOUS_PICTURE);
+//                }
+//            }
+//        });
         mGestureDetector = new GestureDetector(RawRgbCapture.this, new GestureDetector.SimpleOnGestureListener() {
             @Override
             public boolean onSingleTapUp(MotionEvent pEvent) {
@@ -319,12 +348,12 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
                 return true;
             }
         });
-        mExposureLockSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                mXriteCamera.setExposureLock(isChecked);
-            }
-        });
+//        mExposureLockSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+//            @Override
+//            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+//                mXriteCamera.setExposureLock(isChecked);
+//            }
+//        });
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -421,7 +450,7 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
                 }
             }
             pDirectory.delete();
-            MediaScannerConnection.scanFile(RawRgbCapture.this, new String[]{pDirectory.getAbsolutePath()}, null, new MyOnScanCompletedListener());
+            MediaScannerConnection.scanFile(RawRgbCapture.this, new String[]{pDirectory.getAbsolutePath()}, null, new ListenerFileScannerCompletion());
         }
     }
 
@@ -493,15 +522,15 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
             @Override
             public void run() {
                 mXriteCamera.setExposureMode(XriteCameraExposureMode.OFF);
+                mXriteCamera.setFocusMode(XriteCameraFocusMode.OFF);
 
-
-                Range<Integer> exposureRange = mCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE);
-                mExposureBar.setMax(Math.abs(exposureRange.getLower()) + exposureRange.getUpper());
-                if (mSharedPreferences.getInt(Constants.EXPOSURE_SETTING, Constants.BAD_SHARED_PREF_INT) != Constants.BAD_SHARED_PREF_INT) {
-                    mExposureBar.setProgress(mSharedPreferences.getInt(Constants.EXPOSURE_SETTING, Constants.BAD_SHARED_PREF_INT));
-                } else {
-                    mExposureBar.setProgress(mExposureBar.getMax() / 2);
-                }
+//                Range<Integer> exposureRange = mCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE);
+//                mExposureBar.setMax(Math.abs(exposureRange.getLower()) + exposureRange.getUpper());
+//                if (mSharedPreferences.getInt(Constants.EXPOSURE_SETTING, Constants.BAD_SHARED_PREF_INT) != Constants.BAD_SHARED_PREF_INT) {
+//                    mExposureBar.setProgress(mSharedPreferences.getInt(Constants.EXPOSURE_SETTING, Constants.BAD_SHARED_PREF_INT));
+//                } else {
+//                    mExposureBar.setProgress(mExposureBar.getMax() / 2);
+//                }
                 int iso = mSharedPreferences.getInt(Constants.ISO_SETTING, Constants.BAD_SHARED_PREF_INT);
                 mIsoBar.setMax(MAXIMUM_SEEK_BAR_SETTING);
                 if (mSharedPreferences.getInt(Constants.ISO_SETTING, Constants.BAD_SHARED_PREF_INT) != Constants.BAD_SHARED_PREF_INT) {
@@ -759,7 +788,7 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
             }, 500);
 
             mXriteCamera.takeSnapshots(RawRgbCapture.this, new SnapshotSettings(500));
-//            mTextureView.setOnTouchListener(new XriteCameraTouchListener(mXriteCamera, mTextureView)); //Touch to focus
+            mTextureView.setOnTouchListener(new ListenerTextureViewOnTouch(mXriteCamera, mTextureView)); //Touch to focus
         }
 
         @Override
