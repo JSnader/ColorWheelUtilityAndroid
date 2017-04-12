@@ -46,7 +46,7 @@
         android:layout_gravity="center"
         android:visibility="visible"/>
 
-    <cameralib.xrite.com.xritecameralibrary.XriteTextureView
+    <com.xrite.xritecamera.XriteTextureView
         android:id="@+id/texture"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

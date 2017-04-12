@@ -42,6 +42,7 @@ import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.SeekBar;
@@ -53,23 +54,22 @@ import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.appindexing.Thing;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.xrite.imageclasses.UcpImage;
+import com.xrite.xritecamera.SnapshotSettings;
+import com.xrite.xritecamera.UcpImageCallback;
+import com.xrite.xritecamera.XriteCameraCallback;
+import com.xrite.xritecamera.XriteCameraException;
+import com.xrite.xritecamera.XriteCameraExposureMode;
+import com.xrite.xritecamera.XriteCameraFactory;
+import com.xrite.xritecamera.XriteCameraFocusMode;
+import com.xrite.xritecamera.XriteCameraSettings;
+import com.xrite.xritecamera.XriteSize;
+import com.xrite.xritecamera.XriteTextureView;
+import com.xrite.xritecamera.XriteUcpCamera;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
-
-import cameralib.xrite.com.xritecameralibrary.SnapshotSettings;
-import cameralib.xrite.com.xritecameralibrary.UcpImageCallback;
-import cameralib.xrite.com.xritecameralibrary.XriteCameraCallback;
-import cameralib.xrite.com.xritecameralibrary.XriteCameraException;
-import cameralib.xrite.com.xritecameralibrary.XriteCameraExposureMode;
-import cameralib.xrite.com.xritecameralibrary.XriteCameraFactory;
-import cameralib.xrite.com.xritecameralibrary.XriteCameraFocusMode;
-import cameralib.xrite.com.xritecameralibrary.XriteCameraSettings;
-import cameralib.xrite.com.xritecameralibrary.XriteSize;
-import cameralib.xrite.com.xritecameralibrary.XriteTextureView;
-import cameralib.xrite.com.xritecameralibrary.XriteUcpCamera;
 
 import static rawrgbcamera.xrite.com.rawrgbcameracapture.Constants.MAXIMUM_SEEK_BAR_SETTING;
 import static rawrgbcamera.xrite.com.rawrgbcameracapture.R.id.imageView;
@@ -156,6 +156,7 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_raw_rgb_capture);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         mActivityContext = RawRgbCapture.this;
         mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         mOverlay = (ImageView)findViewById(R.id.imageView);
@@ -527,7 +528,9 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
             @Override
             public void run() {
                 mXriteCamera.setExposureMode(XriteCameraExposureMode.OFF);
-                mXriteCamera.setFocusMode(XriteCameraFocusMode.OFF);
+                if(mXriteCamera.getSupportedFocusModes().contains(XriteCameraFocusMode.OFF)) {
+                    mXriteCamera.setFocusMode(XriteCameraFocusMode.AUTO);
+                }
 
 //                Range<Integer> exposureRange = mCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE);
 //                mExposureBar.setMax(Math.abs(exposureRange.getLower()) + exposureRange.getUpper());

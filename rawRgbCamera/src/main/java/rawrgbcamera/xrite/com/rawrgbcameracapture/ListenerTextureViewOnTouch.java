@@ -3,8 +3,8 @@ package rawrgbcamera.xrite.com.rawrgbcameracapture;
 import android.view.MotionEvent;
 import android.view.View;
 
-import cameralib.xrite.com.xritecameralibrary.XriteTextureView;
-import cameralib.xrite.com.xritecameralibrary.XriteUcpCamera;
+import com.xrite.xritecamera.XriteTextureView;
+import com.xrite.xritecamera.XriteUcpCamera;
 
 
 /**
@@ -23,7 +23,6 @@ public class ListenerTextureViewOnTouch implements View.OnTouchListener{
     @Override
     public boolean onTouch(View pView, MotionEvent pEvent) {
         if (pEvent.getAction() == android.view.MotionEvent.ACTION_UP) {
-//            mCamera.focusOnPoint((int)pEvent.getX(), (int)pEvent.getY(), pView.getWidth(), pView.getHeight()); /* If we are dealing with landscape. */
             mCamera.focusOnPoint((int)pEvent.getY(), pView.getWidth() - (int)pEvent.getX(), pView.getHeight(), pView.getWidth()); /*  */
         }
         return true;
