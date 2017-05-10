@@ -117,7 +117,7 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
     private GestureDetector mGestureDetector;
 
     int mFilterArrangement = 0;//RGGB
-    private boolean mHasRequestedCapture = false;
+    public  boolean mHasRequestedCapture = false;
     private boolean mAnalyzingFrame = false;
 
     /**
@@ -756,11 +756,12 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
     public void onDataCompletion() {
         mAnalyzingFrame = false;
         dismissSpinner();
+        mBonjourConnection.sendPhotoAcknowledgement(mSharedPrefSession);
     }
 
     private void setupNetworkCommunications()
     {
-        mBonjourConnection = new BonjourNetworkConnection(new ColorWheelCameraSensitivityListener());
+        mBonjourConnection = new BonjourNetworkConnection(new ColorWheelCameraSensitivityListener(RawRgbCapture.this, mXriteCamera));
         mBonjourHelper = new BonjourHelper(RawRgbCapture.this);
         mBonjourHelper.initializeNsd();
 

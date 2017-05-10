@@ -50,6 +50,21 @@ public class BonjourNetworkConnection
 		}
     }
 
+    public synchronized void sendPhotoAcknowledgement(int pLogNumber){
+        try{
+            PictureTakenCommand pictureRequested;
+            pictureRequested = new PictureTakenCommand(pLogNumber);
+            DataOutputStream dataOutputStream = new DataOutputStream(socket_.getOutputStream());
+            ByteBuffer byteBuffer = ByteBuffer.allocate(PictureTakenCommand.PICTURE_TAKEN_TYPE.length() + CommandManager.COMMAND_SEPARATOR.length() + Integer.SIZE + CommandManager.COMMAND_COMPLETION_CHARACTERS.length());
+            byteBuffer.put(pictureRequested.getData(false).getBytes());
+            byteBuffer.putInt(pictureRequested.getPictureIdentifier());
+            byteBuffer.put(CommandManager.COMMAND_COMPLETION_CHARACTERS.getBytes());
+            dataOutputStream.write(byteBuffer.array());
+        }catch(IOException pException){
+            pException.printStackTrace();
+        }
+    }
+
     public void tearDown()
     {
         server_.disconnectServer();

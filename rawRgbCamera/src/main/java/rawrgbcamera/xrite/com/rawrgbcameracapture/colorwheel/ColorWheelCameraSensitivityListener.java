@@ -1,20 +1,23 @@
 package rawrgbcamera.xrite.com.rawrgbcameracapture.colorwheel;
 
+import android.content.Context;
+import android.os.Vibrator;
+
 import com.xrite.xritecamera.XriteUcpCamera;
+
+import rawrgbcamera.xrite.com.rawrgbcameracapture.RawRgbCapture;
 
 public class ColorWheelCameraSensitivityListener implements CameraSensitivityListener
 {
-//
+   	XriteUcpCamera 	mCamera;
+	Context 		mContext;
 
-//	@OverrideXriteUcpCamera camera_;
-	//	XritePreviewCallback previewCallback_;
-//
-//	public ColorWheelCameraSensitivityListener(XriteUcpCamera cameraF, XritePreviewCallback previewCallbackF)
-//	{
-//		camera_ = cameraF;
-//		previewCallback_ = previewCallbackF;
-//	}
-//
+	public ColorWheelCameraSensitivityListener(Context pContext, XriteUcpCamera pCamera)
+	{
+		mContext = pContext;
+		mCamera = pCamera;
+	}
+
 	@Override
 	public XriteUcpCamera getCamera()
 	{
@@ -22,27 +25,27 @@ public class ColorWheelCameraSensitivityListener implements CameraSensitivityLis
 	}
 	public void exposureUpdate(ExposureCommand exposureF)
 	{
-//		if(camera_ != null)
+//		if(mCamera != null)
 //		{
-//			camera_.setExposure(exposureF.currentExposure);
-//			camera_.setExposureLock(exposureF.isExposureLocked);
+//			mCamera.setExposure(exposureF.currentExposure);
+//			mCamera.setExposureLock(exposureF.isExposureLocked);
 //		}
 	}
 
 	@Override
 	public void whitePointUpdate(WhitePointCommand whitePointCommandF)
 	{
-//		if(camera_ != null)
+//		if(mCamera != null)
 //		{
-//			//camera_.setWhiteBalance(whitePointCommandF.whitePoint.description);
-//			camera_.setWhiteBalanceLock(whitePointCommandF.isWhitePointLocked);
+//			//mCamera.setWhiteBalance(whitePointCommandF.whitePoint.description);
+//			mCamera.setWhiteBalanceLock(whitePointCommandF.isWhitePointLocked);
 //		}
 	}
 
 	@Override
 	public void focusUpdate(FocusCommand focusF)
 	{
-//		if(camera_ != null)
+//		if(mCamera != null)
 //		{
 //
 //		}
@@ -51,12 +54,14 @@ public class ColorWheelCameraSensitivityListener implements CameraSensitivityLis
 	@Override
 	public void requestPicture()
 	{
-//		camera_.takePicture(previewCallback_);
+		((RawRgbCapture)mContext).mHasRequestedCapture = true;
+		Vibrator v = (Vibrator) mContext.getSystemService(Context.VIBRATOR_SERVICE);
+		v.vibrate(10);
 	}
 
 	@Override
 	public void releaseCamera()
 	{
-//		camera_.releaseCamera();
+//		mCamera.releaseCamera();
 	}
 }

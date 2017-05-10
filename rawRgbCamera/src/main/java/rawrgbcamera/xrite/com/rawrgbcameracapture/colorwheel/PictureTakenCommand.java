@@ -2,13 +2,19 @@ package rawrgbcamera.xrite.com.rawrgbcameracapture.colorwheel;
 
 public class PictureTakenCommand extends Command
 {
-	public static final String PICTURE_TAKEN_TYPE = "PictureTaken";
-	private byte[] pictureBytes_;
+	public static final String 	PICTURE_TAKEN_TYPE = "PictureTaken";
+	private byte[] 				mPictureBytes;
+	private int 				mAcknowledgementNumber;
 
 	public PictureTakenCommand(byte[] pictureBytesF)
 	{
 		super(PICTURE_TAKEN_TYPE);
-		pictureBytes_ = pictureBytesF;
+		mPictureBytes = pictureBytesF;
+	}
+
+	public PictureTakenCommand(int pAcknowledgemenetNumber){
+		super(PICTURE_TAKEN_TYPE);
+		mAcknowledgementNumber = pAcknowledgemenetNumber;
 	}
 
 	@Override
@@ -21,8 +27,10 @@ public class PictureTakenCommand extends Command
 
 	public byte[] getPictureData()
 	{
-		return pictureBytes_;
+		return mPictureBytes;
 	}
+
+	public int getPictureIdentifier(){ return mAcknowledgementNumber; }
 
 	public static PictureTakenCommand parseData(String dataF)
 	{
