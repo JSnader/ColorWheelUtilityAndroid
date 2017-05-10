@@ -70,6 +70,10 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
+import rawrgbcamera.xrite.com.rawrgbcameracapture.colorwheel.BonjourHelper;
+import rawrgbcamera.xrite.com.rawrgbcameracapture.colorwheel.BonjourNetworkConnection;
+import rawrgbcamera.xrite.com.rawrgbcameracapture.colorwheel.ColorWheelCameraSensitivityListener;
+
 import static com.xrite.xritecamera.XriteCameraFocusMode.MACRO;
 import static com.xrite.xritecamera.XriteCameraFocusMode.OFF;
 import static rawrgbcamera.xrite.com.rawrgbcameracapture.Constants.MAXIMUM_SEEK_BAR_SETTING;
@@ -102,6 +106,12 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
     private TextureView.SurfaceTextureListener mTextureListener;
     private XriteSize mPreviewWindowSize;
     private XriteTextureView mTextureView;
+
+    /**
+     * Filter wheel bonjour connection.
+     */
+    private BonjourNetworkConnection mBonjourConnection;
+    private BonjourHelper            mBonjourHelper;
 
     private static int mSharedPrefSession;
     private GestureDetector mGestureDetector;
@@ -531,6 +541,12 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
             mXriteCamera.releaseCamera();
         }
 
+        if (mBonjourHelper != null)
+        {
+            mBonjourHelper.tearDown();
+            mBonjourConnection.tearDown();
+        }
+
         finish();
     }
 
@@ -742,6 +758,22 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
         dismissSpinner();
     }
 
+    private void setupNetworkCommunications()
+    {
+        mBonjourConnection = new BonjourNetworkConnection(new ColorWheelCameraSensitivityListener());
+        mBonjourHelper = new BonjourHelper(RawRgbCapture.this);
+        mBonjourHelper.initializeNsd();
+
+        if(mBonjourConnection.getLocalPort() > -1)
+        {
+            mBonjourHelper.registerService(mBonjourConnection.getLocalPort());
+        } else
+        {
+            Log.d(Constants.LOG_TAG, "ServerSocket isn't bound.");
+        }
+
+    }
+
     private class UcpCameraListener implements XriteCameraCallback
     {
         @Override
@@ -797,6 +829,8 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
                     }
                 });
             }
+
+            setupNetworkCommunications();
 
             mCharacteristics = mXriteCamera.getCameraConfiguration().getCharacteristics();
             android.os.Handler handler = new Handler();
