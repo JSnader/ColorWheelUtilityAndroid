@@ -38,7 +38,7 @@ public class RecordRgbsAsyncTask extends AsyncTask<Void, Void, Void> {
     private static boolean mIsCheckingPosition = false;
     private static double[] mCorrectedPixel = new double[3];
     private static double[] mBayerPixel = new double[4];
-    private int mAverageR, mAverageG, mAverageB;
+    private double mAverageR, mAverageG, mAverageB;
     private String mTimestamp;
     private int mSharedPrefSession;
     private ListenerDataCompletion mCallback;
@@ -68,9 +68,12 @@ public class RecordRgbsAsyncTask extends AsyncTask<Void, Void, Void> {
     @Override
     protected void onProgressUpdate(Void... values) {
         super.onProgressUpdate(values);
-        mTextView.setText("R: " + mAverageR + "\n" +
-                          "G: " + mAverageG + "\n" +
-                          "B: " + mAverageB);
+        String rRounded = String.format("%.2f", mAverageR);
+        String gRounded = String.format("%.2f", mAverageG);
+        String bRounded = String.format("%.2f", mAverageB);
+        mTextView.setText("R: " + rRounded + "\n" +
+                          "G: " + gRounded + "\n" +
+                          "B: " + bRounded);
     }
 
     @Override
@@ -96,22 +99,22 @@ public class RecordRgbsAsyncTask extends AsyncTask<Void, Void, Void> {
         switch (formatF) {
             case 0: //RGGB
                 mCorrectedPixel[0] = mBayerPixel[0];
-                mCorrectedPixel[1] = (mBayerPixel[1] + mBayerPixel[2]) / 2;
+                mCorrectedPixel[1] = (mBayerPixel[1] + mBayerPixel[2]) / 2.0;
                 mCorrectedPixel[2] = mBayerPixel[3];
                 break;
             case 1: //GRBG
                 mCorrectedPixel[0] = mBayerPixel[1];
-                mCorrectedPixel[1] = (mBayerPixel[0] + mBayerPixel[3]) / 2;
+                mCorrectedPixel[1] = (mBayerPixel[0] + mBayerPixel[3]) / 2.0;
                 mCorrectedPixel[2] = mBayerPixel[2];
                 break;
             case 2: //GBRG
                 mCorrectedPixel[0] = mBayerPixel[2];
-                mCorrectedPixel[1] = (mBayerPixel[3] + mBayerPixel[0]) / 2;
+                mCorrectedPixel[1] = (mBayerPixel[3] + mBayerPixel[0]) / 2.0;
                 mCorrectedPixel[2] = mBayerPixel[1];
                 break;
             case 3: //BGGR
                 mCorrectedPixel[0] = mBayerPixel[3];
-                mCorrectedPixel[1] = (mBayerPixel[1] + mBayerPixel[2]) / 2;
+                mCorrectedPixel[1] = (mBayerPixel[1] + mBayerPixel[2]) / 2.0;
                 mCorrectedPixel[2] = mBayerPixel[0];
                 break;
             case 4: //RGB Sensor is not Bayer; output has 3 16-bit values for each pixel, instead of just 1 16-bit value per pixel.
@@ -269,7 +272,7 @@ public class RecordRgbsAsyncTask extends AsyncTask<Void, Void, Void> {
         File rgbRawFile = null, combinedRgbRawFile = null;
         File customDirectory = null;
         File sessionDirectory = null;
-        int averageR = 0, averageG = 0, averageB = 0;
+        double averageR = 0, averageG = 0, averageB = 0;
         try {
             customDirectory = new File(Environment.getExternalStorageDirectory(), "rawRgbCaptureData");
             if (!customDirectory.exists()) {
@@ -284,7 +287,7 @@ public class RecordRgbsAsyncTask extends AsyncTask<Void, Void, Void> {
 
             writer = new PrintWriter(new BufferedWriter(new FileWriter(rgbRawFile)),false);
             writerCombined = new BufferedWriter(new FileWriter(combinedRgbRawFile, true));
-            int numberOfPixels = 0;
+            double numberOfPixels = 0;
             final String COMMA = ",";
             final String NEWLINE = "\n";
             long startTime = System.currentTimeMillis();

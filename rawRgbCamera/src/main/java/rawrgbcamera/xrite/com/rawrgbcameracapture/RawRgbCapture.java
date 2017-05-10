@@ -60,7 +60,6 @@ import com.xrite.xritecamera.XriteCameraCallback;
 import com.xrite.xritecamera.XriteCameraException;
 import com.xrite.xritecamera.XriteCameraExposureMode;
 import com.xrite.xritecamera.XriteCameraFactory;
-import com.xrite.xritecamera.XriteCameraFocusMode;
 import com.xrite.xritecamera.XriteCameraSettings;
 import com.xrite.xritecamera.XriteSize;
 import com.xrite.xritecamera.XriteTextureView;
@@ -71,6 +70,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
+import static com.xrite.xritecamera.XriteCameraFocusMode.MACRO;
+import static com.xrite.xritecamera.XriteCameraFocusMode.OFF;
 import static rawrgbcamera.xrite.com.rawrgbcameracapture.Constants.MAXIMUM_SEEK_BAR_SETTING;
 import static rawrgbcamera.xrite.com.rawrgbcameracapture.R.id.imageView;
 
@@ -89,6 +90,8 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
     private static TextView mRgbTextView;
     private int mViewWidth = 0;
     private static Activity mActivityContext;
+    private boolean mIsFocusLocked = false;
+    private float distance = 10.0f;
 
     private SharedPreferences mSharedPreferences;
 
@@ -488,6 +491,16 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
             builder.show();
             return true;
         }
+        else if(id == R.id.focus_setting){
+            if(mIsFocusLocked) {
+                mXriteCamera.setFocusMode(MACRO);
+                showToast("Focus Unlocked");
+            }else{
+                mXriteCamera.setFocusMode(OFF);
+                showToast("Focus Lock Enabled");
+            }
+            mIsFocusLocked = !mIsFocusLocked;
+        }
 
         return super.onOptionsItemSelected(item);
     }
@@ -528,10 +541,9 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
             @Override
             public void run() {
                 mXriteCamera.setExposureMode(XriteCameraExposureMode.OFF);
-                if(mXriteCamera.getSupportedFocusModes().contains(XriteCameraFocusMode.OFF)) {
-                    mXriteCamera.setFocusMode(XriteCameraFocusMode.AUTO);
+                if(mXriteCamera.getSupportedFocusModes().contains(MACRO)) {
+                    mXriteCamera.setFocusMode(MACRO);
                 }
-
 //                Range<Integer> exposureRange = mCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE);
 //                mExposureBar.setMax(Math.abs(exposureRange.getLower()) + exposureRange.getUpper());
 //                if (mSharedPreferences.getInt(Constants.EXPOSURE_SETTING, Constants.BAD_SHARED_PREF_INT) != Constants.BAD_SHARED_PREF_INT) {

@@ -7,4 +7,9 @@
         android:orderInCategory="100"
         android:icon="@android:drawable/ic_menu_delete"
         app:showAsAction="always" />
+    <item
+        android:id="@+id/focus_setting"
+        android:orderInCategory="101"
+        android:icon="@android:drawable/ic_lock_idle_lock"
+        app:showAsAction="always"/>
 </menu>
