@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2017 X-Rite, Inc. All rights reserved.
+ */
 package rawrgbcamera.xrite.com.rawrgbcameracapture.colorwheel;
 
 import java.util.ArrayList;
@@ -57,11 +60,11 @@ public class WhitePointCommand extends Command
 		isWhitePointLocked = isWhitePointLockedF;
 	}
 
-	public String getData(boolean lineEndingF)
+	public String createCommand(boolean pShouldProvideCommandCompletion)
 	{
 		String commandString = "";
 
-		commandString += type + CommandManager.COMMAND_SEPARATOR;
+		commandString += mCommandType + CommandManager.COMMAND_SEPARATOR;
 		commandString += WHITE_POINT_VALUE + CommandManager.COMMAND_VARIABLE_SEPARATOR + whitePoint.description + CommandManager.COMMAND_PARAMETER_SEPARATOR;
 		for(WhitePointBalance whitePoint : availableWhitePoints)
 		{
@@ -70,7 +73,7 @@ public class WhitePointCommand extends Command
 		commandString += WHITE_POINT_LOCK_AVAILABLE + CommandManager.COMMAND_VARIABLE_SEPARATOR + isWhitePointLockAvailable + CommandManager.COMMAND_PARAMETER_SEPARATOR;
 		commandString += WHITE_POINT_LOCKED + CommandManager.COMMAND_VARIABLE_SEPARATOR + isWhitePointLocked;
 
-		if(lineEndingF)
+		if(pShouldProvideCommandCompletion)
 		{
 			commandString += "\r\n";
 		}

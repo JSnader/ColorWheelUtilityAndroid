@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2017 X-Rite, Inc. All rights reserved.
+ */
 package rawrgbcamera.xrite.com.rawrgbcameracapture;
 
 /**

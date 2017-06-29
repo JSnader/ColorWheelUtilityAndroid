@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2017 X-Rite, Inc. All rights reserved.
+ */
 package rawrgbcamera.xrite.com.rawrgbcameracapture;
 
 import android.content.Context;
@@ -35,12 +38,14 @@ public class RecordRgbsAsyncTask extends AsyncTask<Void, Void, Void> {
     private ByteBuffer mRawBuffer;
     private TextView mTextView;
 
+    public static int mSharedPrefSession;
+    public static String mFilePrefix;
+
     private static boolean mIsCheckingPosition = false;
     private static double[] mCorrectedPixel = new double[3];
     private static double[] mBayerPixel = new double[4];
     private double mAverageR, mAverageG, mAverageB;
     private String mTimestamp;
-    private int mSharedPrefSession;
     private ListenerDataCompletion mCallback;
 
     public RecordRgbsAsyncTask(Context pContext, ListenerDataCompletion pCallback, UcpImage pUcpImage, TextView pTextView, int pSharedPrefSession, String pTimestamp)
@@ -60,14 +65,14 @@ public class RecordRgbsAsyncTask extends AsyncTask<Void, Void, Void> {
     }
 
     @Override
-    protected void onPostExecute(Void aVoid) {
-        super.onPostExecute(aVoid);
+    protected void onPostExecute(Void pUnused) {
+        super.onPostExecute(pUnused);
         mCallback.onDataCompletion();
     }
 
     @Override
-    protected void onProgressUpdate(Void... values) {
-        super.onProgressUpdate(values);
+    protected void onProgressUpdate(Void... pUnusedValues) {
+        super.onProgressUpdate(pUnusedValues);
         String rRounded = String.format("%.2f", mAverageR);
         String gRounded = String.format("%.2f", mAverageG);
         String bRounded = String.format("%.2f", mAverageB);
@@ -77,7 +82,7 @@ public class RecordRgbsAsyncTask extends AsyncTask<Void, Void, Void> {
     }
 
     @Override
-    protected Void doInBackground(Void... params) {
+    protected Void doInBackground(Void... pUnusuedParams) {
         try
         {
             recordRgbData(mUcpImage);
@@ -95,8 +100,8 @@ public class RecordRgbsAsyncTask extends AsyncTask<Void, Void, Void> {
         return null;
     }
 
-    private void reformatForRggb(int formatF) {
-        switch (formatF) {
+    private void reformatForRggb(int pBayerFormat) {
+        switch (pBayerFormat) {
             case 0: //RGGB
                 mCorrectedPixel[0] = mBayerPixel[0];
                 mCorrectedPixel[1] = (mBayerPixel[1] + mBayerPixel[2]) / 2.0;
@@ -122,33 +127,33 @@ public class RecordRgbsAsyncTask extends AsyncTask<Void, Void, Void> {
         }
     }
 
-    private void getRawPixelBayerFormat(int rowF, int colF) {
+    private void getRawPixelBayerFormat(int pRow, int pCol) {
 
         mRawBuffer.order(ByteOrder.nativeOrder());
 
-        if (colF % 2 == 0) //Even column
+        if (pCol % 2 == 0) //Even column
         {
-            if (rowF % 2 == 0) //Even row or Red Channel
+            if (pRow % 2 == 0) //Even row or Red Channel
             {
-                mRawBuffer.position((colF * 2) + (rowF * mUcpImage.getRawImageStride()));
+                mRawBuffer.position((pCol * 2) + (pRow * mUcpImage.getRawImageStride()));
                 mBayerPixel[0] = mRawBuffer.getShort() & 0x7FFF;
-                mRawBuffer.position(((colF + 1) * 2) + (rowF * mUcpImage.getRawImageStride()));
+                mRawBuffer.position(((pCol + 1) * 2) + (pRow * mUcpImage.getRawImageStride()));
                 mBayerPixel[1] = mRawBuffer.getShort() & 0x7FFF;
-                mRawBuffer.position((colF * 2) + ((rowF + 1) * mUcpImage.getRawImageStride()));
+                mRawBuffer.position((pCol * 2) + ((pRow + 1) * mUcpImage.getRawImageStride()));
                 mBayerPixel[2] = mRawBuffer.getShort() & 0x7FFF;
-                mRawBuffer.position(((colF + 1) * 2) + ((rowF + 1) * mUcpImage.getRawImageStride()));
+                mRawBuffer.position(((pCol + 1) * 2) + ((pRow + 1) * mUcpImage.getRawImageStride()));
                 mBayerPixel[3] = mRawBuffer.getShort() & 0x7FFF;
                 if (mIsCheckingPosition) {
                     mRawBuffer.putShort((short) 1000);
                 }
             } else { //Odd row or Green 2 Channel
-                mRawBuffer.position((colF * 2) + ((rowF - 1) * mUcpImage.getRawImageStride()));
+                mRawBuffer.position((pCol * 2) + ((pRow - 1) * mUcpImage.getRawImageStride()));
                 mBayerPixel[0] = mRawBuffer.getShort() & 0x7FFF;
-                mRawBuffer.position((((colF + 1) * 2) + ((rowF - 1) * mUcpImage.getRawImageStride())));
+                mRawBuffer.position((((pCol + 1) * 2) + ((pRow - 1) * mUcpImage.getRawImageStride())));
                 mBayerPixel[1] = mRawBuffer.getShort() & 0x7FFF;
-                mRawBuffer.position((colF * 2) + (rowF * mUcpImage.getRawImageStride()));
+                mRawBuffer.position((pCol * 2) + (pRow * mUcpImage.getRawImageStride()));
                 mBayerPixel[2] = mRawBuffer.getShort() & 0x7FFF;
-                mRawBuffer.position(((colF + 1) * 2) + (rowF * mUcpImage.getRawImageStride()));
+                mRawBuffer.position(((pCol + 1) * 2) + (pRow * mUcpImage.getRawImageStride()));
                 mBayerPixel[3] = mRawBuffer.getShort() & 0x7FFF;
                 if (mIsCheckingPosition) {
                     mRawBuffer.putShort((short) 1000);
@@ -156,27 +161,27 @@ public class RecordRgbsAsyncTask extends AsyncTask<Void, Void, Void> {
             }
         } else //Odd column
         {
-            if (rowF % 2 == 0) //Even row
+            if (pRow % 2 == 0) //Even row
             {
-                mRawBuffer.position(((colF - 1) * 2) + (rowF * mUcpImage.getRawImageStride()));
+                mRawBuffer.position(((pCol - 1) * 2) + (pRow * mUcpImage.getRawImageStride()));
                 mBayerPixel[0] = mRawBuffer.getShort() & 0x7FFF;
-                mRawBuffer.position((colF * 2) + (rowF * mUcpImage.getRawImageStride()));
+                mRawBuffer.position((pCol * 2) + (pRow * mUcpImage.getRawImageStride()));
                 mBayerPixel[1] = mRawBuffer.getShort() & 0x7FFF;
-                mRawBuffer.position(((colF - 1) * 2) + ((rowF + 1) * mUcpImage.getRawImageStride()));
+                mRawBuffer.position(((pCol - 1) * 2) + ((pRow + 1) * mUcpImage.getRawImageStride()));
                 mBayerPixel[2] = mRawBuffer.getShort() & 0x7FFF;
-                mRawBuffer.position((colF * 2) + ((rowF + 1) * mUcpImage.getRawImageStride()));
+                mRawBuffer.position((pCol * 2) + ((pRow + 1) * mUcpImage.getRawImageStride()));
                 mBayerPixel[3] = mRawBuffer.getShort() & 0x7FFF;
                 if (mIsCheckingPosition) {
                     mRawBuffer.putShort((short) 1000);
                 }
             } else { //Odd row
-                mRawBuffer.position(((colF - 1) * 2) + ((rowF - 1) * mUcpImage.getRawImageStride()));
+                mRawBuffer.position(((pCol - 1) * 2) + ((pRow - 1) * mUcpImage.getRawImageStride()));
                 mBayerPixel[0] = mRawBuffer.getShort() & 0x7FFF;
-                mRawBuffer.position((colF * 2) + ((rowF - 1) * mUcpImage.getRawImageStride()));
+                mRawBuffer.position((pCol * 2) + ((pRow - 1) * mUcpImage.getRawImageStride()));
                 mBayerPixel[1] = mRawBuffer.getShort() & 0x7FFF;
-                mRawBuffer.position(((colF - 1) * 2) + (rowF * mUcpImage.getRawImageStride()));
+                mRawBuffer.position(((pCol - 1) * 2) + (pRow * mUcpImage.getRawImageStride()));
                 mBayerPixel[2] = mRawBuffer.getShort() & 0x7FFF;
-                mRawBuffer.position((colF * 2) + (rowF * mUcpImage.getRawImageStride()));
+                mRawBuffer.position((pCol * 2) + (pRow * mUcpImage.getRawImageStride()));
                 mBayerPixel[3] = mRawBuffer.getShort() & 0x7FFF;
                 if (mIsCheckingPosition) {
                     mRawBuffer.putShort((short) 1000);
@@ -228,7 +233,7 @@ public class RecordRgbsAsyncTask extends AsyncTask<Void, Void, Void> {
 
     private void saveRaw(File pSessionDirectory) {
         File rawFile = new File(pSessionDirectory, "RAW_" + mTimestamp + "Debug.dng");
-
+        mFilePrefix = "RAW_" + mTimestamp;
         DngCreator dngCreator = new DngCreator(mUcpImage.getCameraCharacteristics(), mUcpImage.getCaptureResult());
         FileOutputStream output = null;
         try {
@@ -252,9 +257,9 @@ public class RecordRgbsAsyncTask extends AsyncTask<Void, Void, Void> {
         MediaScannerConnection.scanFile(mContext, new String[]{rawFile.getAbsolutePath()}, null, new ListenerFileScannerCompletion());
     }
 
-    private void getRawPixel(int rowF, int colF) {
+    private void getRawPixel(int pRow, int pCol) {
         Integer filterArrangement = mUcpImage.getCameraCharacteristics().get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
-        getRawPixelBayerFormat(rowF, colF);
+        getRawPixelBayerFormat(pRow, pCol);
         reformatForRggb(filterArrangement);
     }
 
@@ -283,6 +288,7 @@ public class RecordRgbsAsyncTask extends AsyncTask<Void, Void, Void> {
                 sessionDirectory.mkdir();
             }
             rgbRawFile = new File(sessionDirectory, "RAW_" + mTimestamp + "rgbs.txt");
+            mFilePrefix = "RAW_" + mTimestamp;
             combinedRgbRawFile = new File(sessionDirectory, "RAW_combinedRGBs.txt");
 
             writer = new PrintWriter(new BufferedWriter(new FileWriter(rgbRawFile)),false);

@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2017 X-Rite, Inc. All rights reserved.
+ */
 package rawrgbcamera.xrite.com.rawrgbcameracapture.colorwheel;
 
 import android.content.Context;
@@ -10,23 +13,21 @@ import rawrgbcamera.xrite.com.rawrgbcameracapture.Constants;
 
 public class BonjourHelper
 {
-    Context context_;
+    public final static String          TAG = "NsdHelper";
+    public final static String          SERVICE_TYPE = "_camerasen._tcp";
+    public       static String          SERVICE_NAME = "Android_" + Build.MANUFACTURER + "_" + Build.MODEL;
 
-    NsdManager nsdManager_;
-    NsdManager.ResolveListener resolveListener_;
-    NsdManager.RegistrationListener registrationListener_;
+    Context                             mContext;
 
-    public static final String SERVICE_TYPE = "_camerasen._tcp";
+    NsdManager                          mNsdManager;
+    NsdManager.ResolveListener          mResolveListener;
+    NsdManager.RegistrationListener     mRegistrationListener;
+    NsdServiceInfo                      mService;
 
-    public static final String TAG = "NsdHelper";
-    public String mServiceName = "Android_" + Build.MANUFACTURER + "_" + Build.MODEL;
-
-    NsdServiceInfo service_;
-
-    public BonjourHelper(Context contextF)
+    public BonjourHelper(Context pContext)
     {
-        context_ = contextF;
-        nsdManager_ = (NsdManager) contextF.getSystemService(Context.NSD_SERVICE);
+        mContext = pContext;
+        mNsdManager = (NsdManager) pContext.getSystemService(Context.NSD_SERVICE);
     }
 
     public void initializeNsd()
@@ -37,7 +38,7 @@ public class BonjourHelper
 
     public void initializeResolveListener()
     {
-        resolveListener_ = new NsdManager.ResolveListener() {
+        mResolveListener = new NsdManager.ResolveListener() {
             @Override
             public void onResolveFailed(NsdServiceInfo serviceInfoF, int errorCodeF)
             {
@@ -49,23 +50,23 @@ public class BonjourHelper
             {
                 Log.e(TAG, "Resolve Succeeded. " + serviceInfoF);
 
-                if (serviceInfoF.getServiceName().equals(mServiceName))
+                if (serviceInfoF.getServiceName().equals(SERVICE_NAME))
                 {
                     Log.d(TAG, "Same IP.");
                     return;
                 }
-                service_ = serviceInfoF;
+                mService = serviceInfoF;
             }
         };
     }
 
     public void initializeRegistrationListener()
     {
-        registrationListener_ = new NsdManager.RegistrationListener() {
+        mRegistrationListener = new NsdManager.RegistrationListener() {
             @Override
             public void onServiceRegistered(NsdServiceInfo nsdServiceInfoF)
             {
-                mServiceName = nsdServiceInfoF.getServiceName();
+                SERVICE_NAME = nsdServiceInfoF.getServiceName();
             }
 
             @Override
@@ -88,26 +89,26 @@ public class BonjourHelper
         };
     }
 
-    public void registerService(int port)
+    public void registerService(int pPort)
     {
         NsdServiceInfo serviceInfo  = new NsdServiceInfo();
-        serviceInfo.setPort(port);
-        serviceInfo.setServiceName(mServiceName);
+        serviceInfo.setPort(pPort);
+        serviceInfo.setServiceName(SERVICE_NAME);
         serviceInfo.setServiceType(SERVICE_TYPE);
 
-        nsdManager_.registerService(serviceInfo, NsdManager.PROTOCOL_DNS_SD, registrationListener_);
+        mNsdManager.registerService(serviceInfo, NsdManager.PROTOCOL_DNS_SD, mRegistrationListener);
     }
 
     public NsdServiceInfo getChosenServiceInfo()
     {
-        return service_;
+        return mService;
     }
 
     public void tearDown()
     {
         try
 		{
-			nsdManager_.unregisterService(registrationListener_);
+			mNsdManager.unregisterService(mRegistrationListener);
 		} catch(Exception exceptionF)
 		{
 			Log.w(Constants.LOG_TAG, "Registration listener already unregistered.");

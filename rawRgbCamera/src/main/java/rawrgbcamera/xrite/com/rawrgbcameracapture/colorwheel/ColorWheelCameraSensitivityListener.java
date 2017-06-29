@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2017 X-Rite, Inc. All rights reserved.
+ */
 package rawrgbcamera.xrite.com.rawrgbcameracapture.colorwheel;
 
 import android.content.Context;
@@ -23,27 +26,27 @@ public class ColorWheelCameraSensitivityListener implements CameraSensitivityLis
 	{
 		return null;
 	}
-	public void exposureUpdate(ExposureCommand exposureF)
+	public void exposureUpdate(ExposureCommand pExposure)
 	{
 //		if(mCamera != null)
 //		{
-//			mCamera.setExposure(exposureF.currentExposure);
-//			mCamera.setExposureLock(exposureF.isExposureLocked);
+//			mCamera.setExposure(pExposure.mCurrentExposure);
+//			mCamera.setExposureLock(pExposure.mIsExposureLocked);
 //		}
 	}
 
 	@Override
-	public void whitePointUpdate(WhitePointCommand whitePointCommandF)
+	public void whitePointUpdate(WhitePointCommand pWhitePoint)
 	{
 //		if(mCamera != null)
 //		{
-//			//mCamera.setWhiteBalance(whitePointCommandF.whitePoint.description);
-//			mCamera.setWhiteBalanceLock(whitePointCommandF.isWhitePointLocked);
+//			//mCamera.setWhiteBalance(pWhitePoint.whitePoint.description);
+//			mCamera.setWhiteBalanceLock(pWhitePoint.isWhitePointLocked);
 //		}
 	}
 
 	@Override
-	public void focusUpdate(FocusCommand focusF)
+	public void focusUpdate(FocusCommand pFocus)
 	{
 //		if(mCamera != null)
 //		{

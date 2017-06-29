@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2017 X-Rite, Inc. All rights reserved.
+ */
 package rawrgbcamera.xrite.com.rawrgbcameracapture.colorwheel;
 
 import android.util.Log;
@@ -8,30 +11,30 @@ import rawrgbcamera.xrite.com.rawrgbcameracapture.Constants;
 public class CameraResponseCommand extends Command
 {
 	private static final String CAMERA_RESPONSE_TYPE = "CameraResponse";
-	public ArrayList<Command> commands;
+	public ArrayList<Command> 	mCommandList;
 
 
-	public CameraResponseCommand(ArrayList<Command> commandsF)
+	public CameraResponseCommand(ArrayList<Command> pCommandList)
 	{
 		super(CAMERA_RESPONSE_TYPE);
-		commands = commandsF;
+		mCommandList = pCommandList;
 	}
 
-	public String getData(boolean lineEndingF)
+	public String createCommand(boolean pShouldProvideCommandCompletion)
 	{
 		String commandString = CAMERA_RESPONSE_TYPE + CommandManager.COMMAND_SEPARATOR;
 
 		int index = 0;
-		for(Command command : commands)
+		for(Command command : mCommandList)
 		{
-			commandString += command.getData(false);
-			if(index++ < commands.size() - 1)
+			commandString += command.createCommand(false);
+			if(index++ < mCommandList.size() - 1)
 			{
 				commandString += "&";
 			}
 		}
 
-		if(lineEndingF)
+		if(pShouldProvideCommandCompletion)
 		{
 			commandString += CommandManager.COMMAND_COMPLETION_CHARACTERS;
 		}
@@ -39,10 +42,10 @@ public class CameraResponseCommand extends Command
 		return commandString;
 	}
 
-	public static CameraResponseCommand parseData(String dataF)
+	public static CameraResponseCommand parseCommandData(String pParseableData)
 	{
 		ArrayList<Command> commands = new ArrayList<Command>();
-		String[] parsedStr = dataF.split(CommandManager.COMMAND_CAMERA_RESPONSE_PARAM_SEPARATOR);
+		String[] parsedStr = pParseableData.split(CommandManager.COMMAND_CAMERA_RESPONSE_PARAM_SEPARATOR);
 
 		for(String commandStr : parsedStr)
 		{

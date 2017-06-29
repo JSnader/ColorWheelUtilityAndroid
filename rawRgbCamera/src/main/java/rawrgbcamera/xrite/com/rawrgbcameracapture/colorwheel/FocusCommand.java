@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2017 X-Rite, Inc. All rights reserved.
+ */
 package rawrgbcamera.xrite.com.rawrgbcameracapture.colorwheel;
 
 import java.util.ArrayList;
@@ -55,11 +58,11 @@ public class FocusCommand extends Command
 		availableFoci_ = availableFocusModesF;
 	}
 
-	public String getData(boolean lineEndingF)
+	public String createCommand(boolean pShouldProvideCommandCompletion)
 	{
 		String commandString = "";
 
-		commandString += type + CommandManager.COMMAND_SEPARATOR;
+		commandString += mCommandType + CommandManager.COMMAND_SEPARATOR;
 		commandString += FOCUS_VALUE + CommandManager.COMMAND_VARIABLE_SEPARATOR + focus_.description + CommandManager.COMMAND_PARAMETER_SEPARATOR;
 		int index = 0;
 		for(FocusMode focusMode : availableFoci_)
@@ -71,7 +74,7 @@ public class FocusCommand extends Command
 			}
 		}
 
-		if(lineEndingF)
+		if(pShouldProvideCommandCompletion)
 		{
 			commandString += "\r\n";
 		}

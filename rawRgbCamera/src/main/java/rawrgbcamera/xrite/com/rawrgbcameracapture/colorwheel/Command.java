@@ -1,13 +1,16 @@
+/*
+ * Copyright (c) 2017 X-Rite, Inc. All rights reserved.
+ */
 package rawrgbcamera.xrite.com.rawrgbcameracapture.colorwheel;
 
 public abstract class Command
 {
-	public String type;
+	public String mCommandType;
 
-	public Command(String typeF)
+	public Command(String pCommandType)
 	{
-		type = typeF;
+		mCommandType = pCommandType;
 	}
 
-	public abstract String getData(boolean lineEndingF);
+	public abstract String createCommand(boolean pShouldProvideCommandCompletion);
 }

@@ -1,8 +1,11 @@
+/*
+ * Copyright (c) 2017 X-Rite, Inc. All rights reserved.
+ */
 package rawrgbcamera.xrite.com.rawrgbcameracapture.colorwheel;
 
 public class ExposureCommand extends Command
 {
-	public static final String EXPOSURE_TYPE = "ExposureCommand";
+	public static final String 	EXPOSURE_TYPE = "ExposureCommand";
 	private static final String EXPOSURE_VALUE = "exposureValue";
 	private	static final String	EXPOSURE_MIN = "exposureMin";
 	private	static final String	EXPOSURE_MAX = "exposureMax";
@@ -10,37 +13,37 @@ public class ExposureCommand extends Command
 	private static final String EXPOSURE_LOCKED = "exposureLocked";
 	private static final String EXPOSURE_LOCK_AVAILABLE = "exposureLockAvailability";
 
-	int minExposure_;
-	int maxExposure_;
-	public int currentExposure;
-	float exposureCompensationStep_;
-	public boolean isExposureLocked;
-	boolean isExposureLockAvailable_;
+	private int 				mMinExposure;
+	private int 				mMaxExposure;
+	private int 				mCurrentExposure;
+	private float 				mExposureCompensationStep;
+	private boolean 			mIsExposureLocked;
+	private boolean 			mIsExposureLockAvailable;
 
-	public ExposureCommand(int currentExposureF, int minExposureF, int maxExposureF, float exposureCompensationStepF, boolean isExposureLockAvailableF, boolean isExposureLockedF)
+	public ExposureCommand(int pCurrentExposure, int pMinExposure, int pMaxExposure, float pExposureCompensationStep, boolean pIsExposureLockAvailable, boolean pIsExposureLocked)
 	{
 		super(EXPOSURE_TYPE);
-		currentExposure = currentExposureF;
-		minExposure_ = minExposureF;
-		maxExposure_ = maxExposureF;
-		exposureCompensationStep_ = exposureCompensationStepF;
-		isExposureLocked = isExposureLockedF;
-		isExposureLockAvailable_ = isExposureLockAvailableF;
+		mCurrentExposure = pCurrentExposure;
+		mMinExposure = pMinExposure;
+		mMaxExposure = pMaxExposure;
+		mExposureCompensationStep = pExposureCompensationStep;
+		mIsExposureLocked = pIsExposureLocked;
+		mIsExposureLockAvailable = pIsExposureLockAvailable;
 	}
 
-	public String getData(boolean lineEndingF)
+	public String createCommand(boolean pShouldProvideCommandCompletion)
 	{
 		String commandString = "";
 
-		commandString += type + CommandManager.COMMAND_SEPARATOR;
-		commandString += EXPOSURE_VALUE + CommandManager.COMMAND_VARIABLE_SEPARATOR + currentExposure + CommandManager.COMMAND_PARAMETER_SEPARATOR;
-		commandString += EXPOSURE_MIN + CommandManager.COMMAND_VARIABLE_SEPARATOR + minExposure_ + CommandManager.COMMAND_PARAMETER_SEPARATOR;
-		commandString += EXPOSURE_MAX + CommandManager.COMMAND_VARIABLE_SEPARATOR + maxExposure_ + CommandManager.COMMAND_PARAMETER_SEPARATOR;
-		commandString += EXPOSURE_COMPENSATION_STEP + CommandManager.COMMAND_VARIABLE_SEPARATOR + exposureCompensationStep_ + CommandManager.COMMAND_PARAMETER_SEPARATOR;
-		commandString += EXPOSURE_LOCK_AVAILABLE + CommandManager.COMMAND_VARIABLE_SEPARATOR + isExposureLockAvailable_ + CommandManager.COMMAND_PARAMETER_SEPARATOR;
-		commandString += EXPOSURE_LOCKED + CommandManager.COMMAND_VARIABLE_SEPARATOR + isExposureLocked;
+		commandString += mCommandType + CommandManager.COMMAND_SEPARATOR;
+		commandString += EXPOSURE_VALUE + CommandManager.COMMAND_VARIABLE_SEPARATOR + mCurrentExposure + CommandManager.COMMAND_PARAMETER_SEPARATOR;
+		commandString += EXPOSURE_MIN + CommandManager.COMMAND_VARIABLE_SEPARATOR + mMinExposure + CommandManager.COMMAND_PARAMETER_SEPARATOR;
+		commandString += EXPOSURE_MAX + CommandManager.COMMAND_VARIABLE_SEPARATOR + mMaxExposure + CommandManager.COMMAND_PARAMETER_SEPARATOR;
+		commandString += EXPOSURE_COMPENSATION_STEP + CommandManager.COMMAND_VARIABLE_SEPARATOR + mExposureCompensationStep + CommandManager.COMMAND_PARAMETER_SEPARATOR;
+		commandString += EXPOSURE_LOCK_AVAILABLE + CommandManager.COMMAND_VARIABLE_SEPARATOR + mIsExposureLockAvailable + CommandManager.COMMAND_PARAMETER_SEPARATOR;
+		commandString += EXPOSURE_LOCKED + CommandManager.COMMAND_VARIABLE_SEPARATOR + mIsExposureLocked;
 
-		if(lineEndingF)
+		if(pShouldProvideCommandCompletion)
 		{
 			commandString += "\r\n";
 		}
@@ -48,7 +51,7 @@ public class ExposureCommand extends Command
 		return commandString;
 	}
 
-	public static ExposureCommand parseData(String dataF)
+	public static ExposureCommand parseData(String pData)
 	{
 		ExposureCommand exposureCommand;
 		int minExposure = 0;
@@ -58,7 +61,7 @@ public class ExposureCommand extends Command
 		boolean isExposureLocked = false;
 		boolean isExposureLockAvailable = false;
 
-		String[] parameters = dataF.split(CommandManager.COMMAND_PARAMETER_SEPARATOR);
+		String[] parameters = pData.split(CommandManager.COMMAND_PARAMETER_SEPARATOR);
 		String[] values;
 
 		for(String parameter : parameters)

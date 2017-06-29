@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2017 X-Rite, Inc. All rights reserved.
+ */
 package rawrgbcamera.xrite.com.rawrgbcameracapture;
 
 import android.Manifest;
@@ -85,6 +88,7 @@ import static rawrgbcamera.xrite.com.rawrgbcameracapture.R.id.imageView;
  * screen.  The rgbs from a raw capture device will be saved off.
  */
 public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback, ListenerDataCompletion {
+    private final static int EXPOSURE_DIVISOR = 1; //1 normally with 5 or so for the HTC and 20 for the LG G5.
     private static AudioManager mAudioManager;
     private static CoordinatorLayout mCoordinatorLayout;
     private ImageView mOverlay;
@@ -96,6 +100,7 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
     private static Activity mActivityContext;
     private boolean mIsFocusLocked = false;
     private float distance = 10.0f;
+    private int mExposureTime;
 
     private SharedPreferences mSharedPreferences;
 
@@ -116,9 +121,14 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
     private static int mSharedPrefSession;
     private GestureDetector mGestureDetector;
 
+    private MenuItem   mFocusMenuItem;
     int mFilterArrangement = 0;//RGGB
-    public  boolean mHasRequestedCapture = false;
+    public static  boolean mHasRequestedCapture = false;
+    public static  boolean mHasTakenBlackpoint = false;
+    public static  boolean mShouldTakeSoftwareBlackpoint = false;
+    public static  boolean mRestoreExposure = false;
     private boolean mAnalyzingFrame = false;
+    private Snackbar mSnackbar;
 
     /**
      * Conversion from screen rotation to JPEG orientation.
@@ -212,7 +222,7 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
                 if ((event.getAction() == KeyEvent.ACTION_DOWN) &&
                         (keyCode == KeyEvent.KEYCODE_ENTER)) {
                     Range<Long> range2 = mXriteCamera.getExposureTimeRange();
-                    long max = range2.getUpper();
+                    long max = range2.getUpper() / EXPOSURE_DIVISOR;
                     long min = range2.getLower();
                     long upperLimit = max - min;
 
@@ -235,18 +245,19 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Range<Long> range2 = mXriteCamera.getExposureTimeRange();
-                long max = range2.getUpper();
+                long max = range2.getUpper() / EXPOSURE_DIVISOR;
                 long min = range2.getLower();
                 long upperLimit = max - min;
-                int exposureTime = (int) Math.floor((progress * ((double)upperLimit / (double)MAXIMUM_SEEK_BAR_SETTING) + min));
-                mExposureEditTextView.setText("" + exposureTime / 1000000);
+                mExposureTime = (int) Math.floor((progress * ((double)upperLimit / (double)MAXIMUM_SEEK_BAR_SETTING) + min));
+                //exposureTime = exposureTime / EXPOSURE_DIVISOR;//Analyze the bottom half of the available exposure;
+                mExposureEditTextView.setText("" + mExposureTime / 1000000);
                 if(fromUser) {
                     SharedPreferences.Editor editor = mSharedPreferences.edit();
                     editor.putInt(Constants.EXPOSURE_TIME_SETTING, progress);
                     editor.apply();
                     editor.commit();
                 }
-                mXriteCamera.setExposureTime(exposureTime);
+                mXriteCamera.setExposureTime(mExposureTime);
             }
 
             @Override
@@ -259,32 +270,6 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
 
             }
         });
-//        mExposureBar = (SeekBar) findViewById(R.id.seekBarExposure);
-//        mExposureBar.setEnabled(false);
-//        mExposureBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-//            @Override
-//            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-//                int exposureLevel = progress - (int) Math.ceil((double) mExposureBar.getMax() / (double) 2.0f);
-//                mExposureTextView.setText("Exposure: " + exposureLevel);
-//                if(fromUser) {
-//                    SharedPreferences.Editor editor = mSharedPreferences.edit();
-//                    editor.putInt(Constants.EXPOSURE_SETTING, progress);
-//                    editor.apply();
-//                    editor.commit();
-//                }
-//                mXriteCamera.setExposure(exposureLevel);
-//            }
-//
-//            @Override
-//            public void onStartTrackingTouch(SeekBar seekBar) {
-//
-//            }
-//
-//            @Override
-//            public void onStopTrackingTouch(SeekBar seekBar) {
-//
-//            }
-//        });
         mOverlaySizeBar = (SeekBar) findViewById(R.id.seekBarSize);
         mOverlaySizeBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -343,18 +328,6 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
 
             }
         });
-//        mFocusLockSwitch.setChecked(false);
-//        mFocusLockSwitch.setEnabled(false);
-//        mFocusLockSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-//            @Override
-//            public void onCheckedChanged(CompoundButton pButtonView, boolean pIsChecked) {
-//                if(pIsChecked) {
-//                    mXriteCamera.setFocusMode(XriteCameraFocusMode.FIXED);
-//                }else{
-//                    mXriteCamera.setFocusMode(XriteCameraFocusMode.CONTINUOUS_PICTURE);
-//                }
-//            }
-//        });
         mGestureDetector = new GestureDetector(RawRgbCapture.this, new GestureDetector.SimpleOnGestureListener() {
             @Override
             public boolean onSingleTapUp(MotionEvent pEvent) {
@@ -367,12 +340,6 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
                 return true;
             }
         });
-//        mExposureLockSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-//            @Override
-//            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-//                mXriteCamera.setExposureLock(isChecked);
-//            }
-//        });
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -447,12 +414,16 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
         // ATTENTION: This was auto-generated to implement the App Indexing API.
         // See https://g.co/AppIndexing/AndroidStudio for more information.
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
+
+        mSnackbar = Snackbar.make(mCoordinatorLayout, "Capture black point measurement", Snackbar.LENGTH_INDEFINITE).setAction("Action", null);
+        mSnackbar.show();
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_raw_rgb_capture, menu);
+        mFocusMenuItem = menu.findItem(R.id.focus_setting);
         return true;
     }
 
@@ -504,10 +475,12 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
         else if(id == R.id.focus_setting){
             if(mIsFocusLocked) {
                 mXriteCamera.setFocusMode(MACRO);
-                showToast("Focus Unlocked");
+                item.setIcon(R.drawable.ic_lock_open_white_24dp);
+//                showToast("Focus Unlocked");
             }else{
                 mXriteCamera.setFocusMode(OFF);
-                showToast("Focus Lock Enabled");
+                item.setIcon(R.drawable.ic_lock_outline_white_24dp);
+//                showToast("Focus Lock Enabled");
             }
             mIsFocusLocked = !mIsFocusLocked;
         }
@@ -560,13 +533,6 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
                 if(mXriteCamera.getSupportedFocusModes().contains(MACRO)) {
                     mXriteCamera.setFocusMode(MACRO);
                 }
-//                Range<Integer> exposureRange = mCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE);
-//                mExposureBar.setMax(Math.abs(exposureRange.getLower()) + exposureRange.getUpper());
-//                if (mSharedPreferences.getInt(Constants.EXPOSURE_SETTING, Constants.BAD_SHARED_PREF_INT) != Constants.BAD_SHARED_PREF_INT) {
-//                    mExposureBar.setProgress(mSharedPreferences.getInt(Constants.EXPOSURE_SETTING, Constants.BAD_SHARED_PREF_INT));
-//                } else {
-//                    mExposureBar.setProgress(mExposureBar.getMax() / 2);
-//                }
                 int iso = mSharedPreferences.getInt(Constants.ISO_SETTING, Constants.BAD_SHARED_PREF_INT);
                 mIsoBar.setMax(MAXIMUM_SEEK_BAR_SETTING);
                 if (mSharedPreferences.getInt(Constants.ISO_SETTING, Constants.BAD_SHARED_PREF_INT) != Constants.BAD_SHARED_PREF_INT) {
@@ -593,6 +559,11 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if ((keyCode == KeyEvent.KEYCODE_HEADSETHOOK)) {
             mHasRequestedCapture = true;
+            mHasTakenBlackpoint = true;
+            mShouldTakeSoftwareBlackpoint = true;
+            if(mSnackbar.isShown()) {
+                mSnackbar.dismiss();
+            }
         }
         return true;
     }
@@ -696,10 +667,40 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
 
     }
 
+    private void lockFocusBeforeCapture(){
+        mXriteCamera.setFocusMode(OFF);
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mFocusMenuItem.setIcon(R.drawable.ic_lock_outline_white_24dp);
+            }
+        });
+
+        mIsFocusLocked = true;
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void restoreExposure(){
+        mXriteCamera.setExposureTime(mExposureTime);
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public void onPictureFrameReady(UcpImage ucpImage) {
+        if(mHasRequestedCapture && !mAnalyzingFrame && mHasTakenBlackpoint) {
+            if(!mIsFocusLocked) {
+                lockFocusBeforeCapture();
+                return;
+            }
 
-        if(mHasRequestedCapture && !mAnalyzingFrame) {
             try {
                 Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
                 Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), notification);
@@ -709,13 +710,32 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
                 e.printStackTrace();
             }
 
-            mHasRequestedCapture = false;
-            mAnalyzingFrame = true;
-
             String timeStamp = generateTimestamp();
             new RecordRgbsAsyncTask(mActivityContext, RawRgbCapture.this, ucpImage, mRgbTextView, mSharedPrefSession, timeStamp).execute();
             new RecordImagesAsyncTask(mActivityContext, ucpImage, mSharedPrefSession, timeStamp).execute();
+
+//            if(mRestoreExposure){ //Capture the software black levels of the device.
+//                restoreExposure();
+//            }else if(mShouldTakeSoftwareBlackpoint){ //Capture the black levels of the device.
+//                captureBlackPoint();
+//            }else {
+                mHasRequestedCapture = false;
+                mAnalyzingFrame = true;
+//            }
         }
+    }
+
+    private void captureBlackPoint(){
+        mShouldTakeSoftwareBlackpoint = false;
+        long min = (( Range<Long>)mXriteCamera.getExposureTimeRange()).getLower();
+        mXriteCamera.setExposureTime(min);
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        mRestoreExposure = true;
+        mHasRequestedCapture = true;
     }
 
     /**
@@ -756,7 +776,7 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
     public void onDataCompletion() {
         mAnalyzingFrame = false;
         dismissSpinner();
-        mBonjourConnection.sendPhotoAcknowledgement(mSharedPrefSession);
+        mBonjourConnection.sendRawPhotoCapturePrefix(RecordRgbsAsyncTask.mSharedPrefSession, RecordRgbsAsyncTask.mFilePrefix);
     }
 
     private void setupNetworkCommunications()

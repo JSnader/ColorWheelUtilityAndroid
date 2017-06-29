@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2017 X-Rite, Inc. All rights reserved.
+ */
 package rawrgbcamera.xrite.com.rawrgbcameracapture.colorwheel;
 
 public class PictureTakenCommand extends Command
@@ -18,7 +21,7 @@ public class PictureTakenCommand extends Command
 	}
 
 	@Override
-	public String getData(boolean lineEndingF)
+	public String createCommand(boolean pShouldProvideCommandCompletion)
 	{
 		String command = PICTURE_TAKEN_TYPE + CommandManager.COMMAND_SEPARATOR;
 

@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2017 X-Rite, Inc. All rights reserved.
+ */
 package rawrgbcamera.xrite.com.rawrgbcameracapture.colorwheel;
 
 import android.util.Log;
@@ -13,34 +16,32 @@ import rawrgbcamera.xrite.com.rawrgbcameracapture.Constants;
 
 public class BonjourNetworkConnection
 {
-	private CameraSensitivityListener cameraHandler_;
-    private ConnectionServer server_;
+    private static final String         TAG = "NetworkConnection";
+	private CameraSensitivityListener   mListener;
+    private ConnectionServer            mServer;
+    private Socket                      mSocket;
+    private int                         mPort = -1; //Designates to the server to choose a random available port.
 
-    private static final String TAG = "NetworkConnection";
-
-    private Socket socket_;
-    private int port_ = -1;
-
-    public BonjourNetworkConnection(CameraSensitivityListener handlerF)
+    public BonjourNetworkConnection(CameraSensitivityListener pListener)
     {
-        cameraHandler_ = handlerF;
-        server_ = new ConnectionServer();
+        mListener = pListener;
+        mServer = new ConnectionServer();
     }
 
     public int getLocalPort()
     {
-    	return port_;
+    	return mPort;
     }
 
-    public synchronized void sendPhotograph(byte[] pictureBytesF)
+    public synchronized void sendPhotograph(byte[] pPictureBytes)
     {
     	try
 		{
     		PictureTakenCommand pictureRequested;
-    		pictureRequested = new PictureTakenCommand(pictureBytesF);
-			DataOutputStream dataOutputStream = new DataOutputStream(socket_.getOutputStream());
-			ByteBuffer byteBuffer = ByteBuffer.allocate(PictureTakenCommand.PICTURE_TAKEN_TYPE.length() + CommandManager.COMMAND_SEPARATOR.length() + pictureBytesF.length + CommandManager.COMMAND_COMPLETION_CHARACTERS.length());
-			byteBuffer.put(pictureRequested.getData(false).getBytes());
+    		pictureRequested = new PictureTakenCommand(pPictureBytes);
+			DataOutputStream dataOutputStream = new DataOutputStream(mSocket.getOutputStream());
+			ByteBuffer byteBuffer = ByteBuffer.allocate(PictureTakenCommand.PICTURE_TAKEN_TYPE.length() + CommandManager.COMMAND_SEPARATOR.length() + pPictureBytes.length + CommandManager.COMMAND_COMPLETION_CHARACTERS.length());
+			byteBuffer.put(pictureRequested.createCommand(false).getBytes());
 			byteBuffer.put(pictureRequested.getPictureData());
 			byteBuffer.put(CommandManager.COMMAND_COMPLETION_CHARACTERS.getBytes());
 			dataOutputStream.write(byteBuffer.array());
@@ -50,43 +51,53 @@ public class BonjourNetworkConnection
 		}
     }
 
-    public synchronized void sendPhotoAcknowledgement(int pLogNumber){
-        try{
-            PictureTakenCommand pictureRequested;
-            pictureRequested = new PictureTakenCommand(pLogNumber);
-            DataOutputStream dataOutputStream = new DataOutputStream(socket_.getOutputStream());
-            ByteBuffer byteBuffer = ByteBuffer.allocate(PictureTakenCommand.PICTURE_TAKEN_TYPE.length() + CommandManager.COMMAND_SEPARATOR.length() + Integer.SIZE + CommandManager.COMMAND_COMPLETION_CHARACTERS.length());
-            byteBuffer.put(pictureRequested.getData(false).getBytes());
-            byteBuffer.putInt(pictureRequested.getPictureIdentifier());
-            byteBuffer.put(CommandManager.COMMAND_COMPLETION_CHARACTERS.getBytes());
-            dataOutputStream.write(byteBuffer.array());
-        }catch(IOException pException){
-            pException.printStackTrace();
-        }
+    public synchronized void sendRawPhotoCapturePrefix(final int pSessionIdentifier, final String pLogFilePrefix){
+            final RawCommand rawPicCommand;
+            rawPicCommand = new RawCommand(pLogFilePrefix);
+            if(mSocket != null) {
+                Thread thread = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try{
+                            DataOutputStream dataOutputStream = new DataOutputStream(mSocket.getOutputStream());
+                            ByteBuffer byteBuffer = ByteBuffer.allocate(RawCommand.RAW_PIC_COMMAND_TYPE.length() + CommandManager.COMMAND_SEPARATOR.length() + Integer.SIZE + CommandManager.COMMAND_COMPLETION_CHARACTERS.length());
+                            byteBuffer.put(rawPicCommand.createCommand(false).getBytes());
+                            byteBuffer.put(new String("" + pSessionIdentifier).getBytes());
+                            byteBuffer.put("&".getBytes());
+                            byteBuffer.put(pLogFilePrefix.getBytes());
+                            byteBuffer.put(CommandManager.COMMAND_COMPLETION_CHARACTERS.getBytes());
+                            dataOutputStream.write(byteBuffer.array());
+                        }catch(IOException pException){
+                            pException.printStackTrace();
+                        }
+                    }
+                });
+                thread.start();
+            }
     }
 
     public void tearDown()
     {
-        server_.disconnectServer();
+        mServer.disconnectServer();
     }
 
     private class ConnectionServer
     {
-        ServerSocket serverSocket_ = null;
-        Thread serverThread_ = null;
+        ServerSocket mServerSocket = null;
+        Thread mServerThread = null;
 
         public ConnectionServer()
         {
-            serverThread_ = new Thread(new ServerThread());
-            serverThread_.start();
+            mServerThread = new Thread(new ServerThread());
+            mServerThread.start();
         }
 
         public void disconnectServer()
         {
-            serverThread_.interrupt();
+            mServerThread.interrupt();
             try
             {
-                serverSocket_.close();
+                mServerSocket.close();
             } catch (IOException ioe)
             {
                 Log.e(TAG, "Error when closing server socket.");
@@ -95,30 +106,30 @@ public class BonjourNetworkConnection
 
         class ServerThread implements Runnable
         {
-        	DataOutputStream dataOutStream_;
-        	DataInputStream dataInputStream_;
+        	DataOutputStream mDataOutputStream;
+        	DataInputStream  mDataInputStream;
 
             @Override
             public void run()
             {
                 try
                 {
-                    serverSocket_ = new ServerSocket(0);
+                    mServerSocket = new ServerSocket(0);
 
-                    port_ = serverSocket_.getLocalPort();
+                    mPort = mServerSocket.getLocalPort();
 
-                    socket_ = serverSocket_.accept();
+                    mSocket = mServerSocket.accept();
 
-                    dataOutStream_ = new DataOutputStream(socket_.getOutputStream());
-                    dataOutStream_.write(CommandManager.getDefaultCameraResponseMessage(cameraHandler_).getBytes()); //Report camera capabilities to remote application.
+                    mDataOutputStream = new DataOutputStream(mSocket.getOutputStream());
+                    mDataOutputStream.write(CommandManager.getDefaultCameraResponseMessage(mListener).getBytes()); //Report camera capabilities to remote application.
 
-                    dataInputStream_ = new DataInputStream(socket_.getInputStream());
+                    mDataInputStream = new DataInputStream(mSocket.getInputStream());
 
                     while (!Thread.currentThread().isInterrupted())
                     {
                     	try
                     	{
-                    		CommandManager.handleCommand(dataInputStream_.readLine(), cameraHandler_);
+                    		CommandManager.handleCommand(mDataInputStream.readLine(), mListener);
                     	}catch(Exception exceptionF)
                     	{
                     		Log.e(Constants.LOG_TAG, "Exception during communication -> " + exceptionF.getStackTrace());
@@ -127,16 +138,16 @@ public class BonjourNetworkConnection
 
                     try
     				{
-                		if(serverSocket_ != null)
+                		if(mServerSocket != null)
                 		{
-                			serverSocket_.close();
+                			mServerSocket.close();
                 		}
     				} catch(IOException exceptionF)
     				{
     					exceptionF.printStackTrace();
     				}
-                    serverSocket_ = null;
-            		cameraHandler_.releaseCamera();
+                    mServerSocket = null;
+            		mListener.releaseCamera();
                 } catch (IOException exceptionF)
                 {
                     Log.e(TAG, "Error at the server thread: ", exceptionF);
@@ -147,16 +158,16 @@ public class BonjourNetworkConnection
             {
             	try
 				{
-            		if(serverSocket_ != null)
+            		if(mServerSocket != null)
             		{
-            			serverSocket_.close();
+            			mServerSocket.close();
             		}
 				} catch(IOException exceptionF)
 				{
 					exceptionF.printStackTrace();
 				}
-                serverSocket_ = null;
-        		cameraHandler_.releaseCamera();
+                mServerSocket = null;
+        		mListener.releaseCamera();
             }
         }
     }
