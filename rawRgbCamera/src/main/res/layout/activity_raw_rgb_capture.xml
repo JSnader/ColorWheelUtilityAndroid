@@ -160,8 +160,7 @@
             android:paddingBottom="10dp"
             android:paddingLeft="10dp"
             android:layout_above="@+id/textViewOverlaySize"
-            android:layout_alignParentStart="true"
-            android:clickable="false"/>
+            android:layout_alignParentStart="true"/>
 
         <TextView
             android:id="@+id/textViewExposureTime"

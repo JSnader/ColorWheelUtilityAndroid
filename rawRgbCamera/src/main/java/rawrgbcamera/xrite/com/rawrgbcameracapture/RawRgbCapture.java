@@ -200,7 +200,7 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
         editor.commit();
 
         //Set maximum volume for device so that we can here the shutter sound.
-        int origionalVolume = mAudioManager.getStreamVolume(AudioManager.STREAM_RING);
+        int originalVolume = mAudioManager.getStreamVolume(AudioManager.STREAM_RING);
         mAudioManager.setStreamVolume(AudioManager.STREAM_RING, mAudioManager.getStreamMaxVolume(AudioManager.STREAM_RING), 0);
 
         mCoordinatorLayout = (CoordinatorLayout) findViewById(R.id.coordinatorLayout);
@@ -300,6 +300,7 @@ public class RawRgbCapture extends AppCompatActivity implements UcpImageCallback
             }
         });
         mIsoBar = (SeekBar) findViewById(R.id.seekBarISO);
+        mIsoBar.setEnabled(false);
         mIsoBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
